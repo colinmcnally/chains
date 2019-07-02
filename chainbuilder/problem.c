@@ -4,42 +4,20 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+#include <assert.h>
+#include <string.h>
 #include "rebound.h"
 
 #include "hdf5.h"
 #include "hdf5_hl.h"
 
-// disc model
-const double Sigma0       = 3.8e-4 *0.5*1.4;
-const double redge        = 0.1;
-const double deltaredge   = 0.001;
-const double aspectratio0 = 0.035;
-const double alpha        = 1.0;
-const double flaringindex = 2.0/7.0;
-const double ffudge       = 1.0/100.0; //fudge factor for matsumoto et al. 2012 - not sure on sign
-
-const double tmax      = 16.0e4*2.*M_PI;    // in year/(2*pi)
-const double tdep      = 0.3*tmax;
-const double deltatdep = 0.2*tmax;
-const double dtout     = 40.0;
-
-const double starmass = 1.0;
-
-//parameters for IC
-const int p = 4;
-const int q = 1;
-const int nchain = 16; 
-const double pmass = 1e-5;
-double ai = 0.11;
-
-const int noutmax = (int)(tmax/dtout) +1;
-int iout;
-
 struct output_structure {
   int nout;
+  int iout;
   int nchain;
   int p;
   int q;
+  char seqstr[256];
   double G;
   double starmass;
   double *pmass; 
@@ -52,8 +30,10 @@ struct output_structure {
   double flaringindex;
   double ffudge;
   double tmax;
+  double dtout;
   double tdep;
   double deltatdep;
+  double tcollstop; ///<Init to -1.0 and set if stopped due to collision
   double *t;
   // the memebrs of the reb_orbit structure, as arrays
   double *d;        ///< Radial distance from central object
@@ -78,25 +58,39 @@ struct output_structure {
 
 struct output_structure out;
 
+int collision_stop(struct reb_simulation* const r, struct reb_collision c);
 void migration_forces(struct reb_simulation* r);
 void migration_forces_tanaka_ward(struct reb_simulation* r);
 void heartbeat(struct reb_simulation* r);
-void init_output_structure(struct output_structure* out, int nchain, int nout);
+void init_output_structure(struct output_structure* out, const int nchain, const int p, const double tmax,
+             const double tdep, const double deltatdep, const int seqnum);
 void out_to_hdf5(struct output_structure* out);
 void free_output_structure(struct output_structure* out);
 double disc_surface_density(const double r, const double t);
 double get_particle_r(struct reb_particle* p, struct reb_particle* com);
+void run_sim(const int nchain, const int p, const double tmax,
+             const double tdep, const double deltatdep, const int seqnum);
 
 int main(int argc, char* argv[]){
     // set output counter
-    iout = 0;
-    init_output_structure(&out, nchain, noutmax);
+    if (argc != 7){
+        printf("Wrong number of arguments %i should be 7\n", argc);
+        exit(-1);
+    }
+    run_sim( atoi(argv[1]), atoi(argv[2]), atof(argv[3]), atof(argv[4]), atof(argv[5]), atoi(argv[6]));
+}
+
+void run_sim(const int nchain, const int p, const double tmax,
+             const double tdep, const double deltatdep, const int seqnum){
+    init_output_structure(&out, nchain, p, tmax, tdep, deltatdep, seqnum);
 
     struct reb_simulation* r = reb_create_simulation();
     // Setup constants
     r->integrator    = REB_INTEGRATOR_WHFAST;
     //r->integrator    = REB_INTEGRATOR_IAS15;
-    r->dt         = 1e-2*2.*M_PI *pow(0.1, 1.5);        // in year/(2*pi)
+    r->dt            = 1e-2*2.*M_PI *pow(0.1, 1.5);        // in year/(2*pi)
+    r->collision        = REB_COLLISION_DIRECT;
+    r->collision_resolve     = collision_stop;        // Set function pointer for collision recording.
     r->additional_forces = migration_forces_tanaka_ward;     //Set function pointer to add dissipative forces.
     r->heartbeat = heartbeat;  
     r->force_is_velocity_dependent = 1;
@@ -107,22 +101,29 @@ int main(int argc, char* argv[]){
     star.m  = out.starmass;            // This is a sub-solar mass star
     reb_add(r, star); 
     
+    double ai = out.ai;
     int errcode;
-    for (int ip=0; ip < nchain; ip++){
+    for (int ip=0; ip < out.nchain; ip++){
       // struct reb_particle reb_tools_orbit_to_particle_err(double G, struct reb_particle primary, 
       //      double m, double a, double e, double i, double Omega, double omega, double f, int* err)
+      //randomize inclination, eccentricity, true anomaly - from seed
       struct reb_particle pt = reb_tools_orbit_to_particle_err( 
-              r->G, star, pmass, ai, ip*0.01, ip*0.01, 0.0, 0.0, 0.0, &errcode);
+              r->G, star, out.pmass[ip], ai, 0.01, 0.01, 0.0, 0.0, (double)ip, &errcode);
+      double rhill = ai * pow(pt.m/(3.*star.m),1./3.);    // Hill radius
+      pt.r = rhill; // Set planet radius to hill radius
+                    // A collision is recorded when planets get within their hill radius
+                    // The hill radius of the particles might change, so it should be recalculated after a while
+      pt.lastcollision = 0;
       reb_add(r, pt);
-      ai = ai * pow(p / (p + q + 0.05), -2./3.);
+      ai = ai * pow(out.p / (out.p + out.q + 0.05), -2./3.);
     } 
 
 
     reb_move_to_com(r);          
 
-    system("rm -v orbits.txt"); // delete previous output file
+    //system("rm -v orbits.txt"); // delete previous output file
 
-    reb_integrate(r, tmax);
+    reb_integrate(r, out.tmax);
    
     out_to_hdf5(&out);
     free_output_structure(&out);
@@ -130,11 +131,36 @@ int main(int argc, char* argv[]){
     printf("\n");
 }
 
-void init_output_structure(struct output_structure* out, int nchain, int nout){
+void init_output_structure(struct output_structure* out,
+                           const int nchain, const int p, const double tmax,
+                           const double tdep, const double deltatdep, const int seqnum){
+
+    // disc model
+    const double Sigma0       = 3.8e-4 *0.5*1.4;
+    const double redge        = 0.1;
+    const double deltaredge   = 0.001;
+    const double aspectratio0 = 0.035;
+    const double alpha        = 1.0;
+    const double flaringindex = 2.0/7.0;
+    const double ffudge       = 1.0/100.0; //fudge factor for matsumoto et al. 2012 - not sure on sign
+    const double dtout        = 500.0 * 2.0*M_PI*pow(0.1,1.5);
+
+    const double starmass = 1.0;
+
+    const int q = 1;
+    const double pmass = 1e-5;
+
+    sprintf(out->seqstr, "%i", seqnum);
+    
+    double ai = 0.11;
+    int nout = (int)((tmax+dtout)/dtout) +2;
     out->nout = nout;
+    out->iout = 0;
     out->nchain = nchain;
     out->tmax = tmax;
+    out->dtout = dtout;
     out->tdep = tdep;
+    out->tcollstop = -1.0;
     out->deltatdep = deltatdep;
     out->Sigma0 = Sigma0;
     out->redge  = redge;
@@ -183,15 +209,18 @@ void out_to_hdf5(struct output_structure* out){
     dims[0] = out->nchain;
     dims[1] = out->nout;
 
+    char filename[500];
+    sprintf(filename,"orbits_%i_%i:%i_%.2e_%s.h5", out->nchain, out->p, out->q, out->pmass[0], out->seqstr);
     /* create a HDF5 file */
-    file_id = H5Fcreate ("orbits.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     hid_t rootid = H5Gopen(file_id, "/", H5P_DEFAULT);
     H5LTset_attribute_int( rootid, "/", "nchain", &out->nchain, 1);
     H5LTset_attribute_int( rootid, "/", "nout",   &out->nout, 1);
+    H5LTset_attribute_int( rootid, "/", "lastout",&out->iout, 1);
     H5LTset_attribute_int( rootid, "/", "p",      &out->p, 1);
     H5LTset_attribute_int( rootid, "/", "q",      &out->q, 1);
-    H5LTset_attribute_double( rootid, "/", "pmass", out->pmass, nchain);
+    H5LTset_attribute_double( rootid, "/", "pmass", out->pmass, out->nchain);
     H5LTset_attribute_double( rootid, "/", "ai",  &out->ai, 1);
 
 
@@ -203,8 +232,10 @@ void out_to_hdf5(struct output_structure* out){
     H5LTset_attribute_double( rootid, "/", "flaringindex",   &out->flaringindex, 1);
     H5LTset_attribute_double( rootid, "/", "ffudge",   &out->ffudge, 1);
     H5LTset_attribute_double( rootid, "/", "tmax",   &out->tmax, 1);
+    H5LTset_attribute_double( rootid, "/", "dtout",   &out->dtout, 1);
     H5LTset_attribute_double( rootid, "/", "tdep",   &out->tdep, 1);
     H5LTset_attribute_double( rootid, "/", "deltatdep",   &out->deltatdep, 1);
+    H5LTset_attribute_double( rootid, "/", "tcollstop",   &out->tcollstop, 1);
 
     H5LTmake_dataset_double(file_id, "/t", 1, scalardims, out->t);
     H5LTmake_dataset_double(file_id, "/d", datarank, dims, out->d);
@@ -253,11 +284,45 @@ void free_output_structure(struct output_structure* out){
    free(out->Sigma);
 }
 
+// Define our own collision resolve function.
+int collision_stop(struct reb_simulation* const r, struct reb_collision c){
+    struct reb_particle com = r->particles[0]; 
+    struct reb_particle p1  = r->particles[c.p1];
+    struct reb_particle p2  = r->particles[c.p2];
+    
+    double dx  = p1.x  - com.x;
+    double dy  = p1.y  - com.y;
+    double dz  = p1.z  - com.z;
+    const double rp1 = sqrt( dx*dx + dy*dy + dz*dz);    
+    const double rhill1 =  rp1 * pow(p1.m/(3.*com.m),1./3.);
+
+    dx  = p2.x  - com.x;
+    dy  = p2.y  - com.y;
+    dz  = p2.z  - com.z;
+    const double rp2 = sqrt( dx*dx + dy*dy + dz*dz);    
+    const double rhill2 =  rp2 * pow(p2.m/(3.*com.m),1./3.);
+
+    const double cx = p1.x - p2.x;
+    const double cy = p1.y - p2.y;
+    const double cz = p1.z - p2.z;
+    const double rcoll = sqrt(cx*cx + cy*cy + cz*cz);
+
+    //check if we are really within the current rhill at present position
+    if (rhill1 > rcoll || rhill2 > rcoll){
+        r->status = REB_EXIT_COLLISION;
+        r->particles[c.p1].lastcollision = r->t;
+        r->particles[c.p2].lastcollision = r->t;
+        out.tcollstop = r->t;
+        printf("Stop on collision %e\n",r->t);
+    }
+    return 0; // don't remove either particle
+}
+
 
 double disc_surface_density(const double r, const double t){
     double  Sigma = out.Sigma0 * pow(r, -out.alpha) * tanh( (r - out.redge) / out.deltaredge) ; 
-    if (t > tdep) {
-        if (t < tdep + deltatdep){
+    if (t > out.tdep) {
+        if (t < out.tdep + out.deltatdep){
             Sigma *= (1.0 - (t - out.tdep)/(out.deltatdep));
         } else {
             Sigma = 0.0;
@@ -325,41 +390,43 @@ double get_particle_r(struct reb_particle* p, struct reb_particle* com){
 void heartbeat(struct reb_simulation* r){
 
     if(reb_output_check(r, 20.*M_PI)){
-        reb_output_timing(r, tmax);
+        reb_output_timing(r, out.tmax);
     }
-    if(reb_output_check(r, dtout)){
+    if(reb_output_check(r, out.dtout) && (r->t > 0.0 && r->t >= out.dtout)){
         reb_integrator_synchronize(r);
-        reb_output_orbits(r,"orbits.txt");
+        //reb_output_orbits(r,"orbits.txt");
         const double G = r->G;
         const int N = r->N;
         struct reb_particle* const particles = r->particles;
         struct reb_particle primary = particles[0];
-        out.t[iout] = r->t;
+        out.t[out.iout] = r->t;
+        assert(out.iout < out.nout);
         for(int i=1;i<N;i++){
             int errcode = 0;
             struct reb_orbit orb = reb_tools_particle_to_orbit_err(G, particles[i], primary, &errcode);
 
-            out.d[(i-1)*out.nout +iout] = orb.d;
-            out.v[(i-1)*out.nout +iout] = orb.v;
-            out.h[(i-1)*out.nout +iout] = orb.h;
-            out.P[(i-1)*out.nout +iout] = orb.P;
-            out.n[(i-1)*out.nout +iout] = orb.n;
-            out.a[(i-1)*out.nout +iout] = orb.a;
-            out.e[(i-1)*out.nout +iout] = orb.e;
-            out.inc[(i-1)*out.nout +iout] = orb.inc;
-            out.Omega[(i-1)*out.nout +iout] = orb.Omega;
-            out.omega[(i-1)*out.nout +iout] = orb.omega;
-            out.pomega[(i-1)*out.nout +iout] = orb.pomega;
-            out.f[(i-1)*out.nout +iout] = orb.f;
-            out.M[(i-1)*out.nout +iout] = orb.M;
-            out.l[(i-1)*out.nout +iout] = orb.l;
-            out.theta[(i-1)*out.nout +iout] = orb.theta;
-            out.T[(i-1)*out.nout +iout] = orb.T;
-            out.rhill[(i-1)*out.nout +iout] = orb.rhill;
+            out.d[(i-1)*out.nout +out.iout] = orb.d;
+            out.v[(i-1)*out.nout +out.iout] = orb.v;
+            out.h[(i-1)*out.nout +out.iout] = orb.h;
+            out.P[(i-1)*out.nout +out.iout] = orb.P;
+            out.n[(i-1)*out.nout +out.iout] = orb.n;
+            out.a[(i-1)*out.nout +out.iout] = orb.a;
+            out.e[(i-1)*out.nout +out.iout] = orb.e;
+            out.inc[(i-1)*out.nout +out.iout] = orb.inc;
+            out.Omega[(i-1)*out.nout +out.iout] = orb.Omega;
+            out.omega[(i-1)*out.nout +out.iout] = orb.omega;
+            out.pomega[(i-1)*out.nout +out.iout] = orb.pomega;
+            out.f[(i-1)*out.nout +out.iout] = orb.f;
+            out.M[(i-1)*out.nout +out.iout] = orb.M;
+            out.l[(i-1)*out.nout +out.iout] = orb.l;
+            out.theta[(i-1)*out.nout +out.iout] = orb.theta;
+            out.T[(i-1)*out.nout +out.iout] = orb.T;
+            out.rhill[(i-1)*out.nout +out.iout] = orb.rhill;
             const double rp = get_particle_r(&particles[i], &primary);
-            out.Sigma[(i-1)*out.nout +iout] = disc_surface_density(rp, r->t);
+            out.Sigma[(i-1)*out.nout +out.iout] = disc_surface_density(rp, r->t);
         }
-        iout += 1;
+        //printf("%e iout %i nout %i %f %f %e %e\n",r->t, iout, out.nout, floor((r->t+out.dtout)/out.dtout), floor((r->t+out.dtout -r->dt)/out.dtout), r->t, r->dt);
+        out.iout += 1;
         reb_move_to_com(r); 
     }
     // should save simulation archives of snapshots here for a slected bunch of random times?
