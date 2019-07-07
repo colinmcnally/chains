@@ -6,7 +6,7 @@ endif
 ifeq ($(OS), Linux)
 	INC+= -I/usr/include/hdf5/serial/
 	OPT+= -Wall -g -Wno-unused-result
-	LIB+= -L/usr/lib/i386-linux-gnu/hdf5/serial/ -lm -lrt
+	LIB+= -L/usr/lib/x86_64-linux-gnu/hdf5/serial/ -lm -lrt
 endif
 ifeq ($(OS), Darwin)
 	OPT+= -I/usr/local/include -Wall -g #-Wsign-compare
