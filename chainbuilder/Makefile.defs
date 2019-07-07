@@ -4,6 +4,7 @@ ifndef OS
 	OS=$(shell uname)
 endif
 ifeq ($(OS), Linux)
+	INC+= -I/usr/include/hdf5/serial/
 	OPT+= -Wall -g -Wno-unused-result
 	LIB+= -lm -lrt
 endif
