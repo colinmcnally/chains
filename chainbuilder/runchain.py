@@ -10,7 +10,7 @@ if sys.platform == 'linux': # assume our Singularity container
   _hdf5 = ctypes.CDLL('/usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.so', mode=ctypes.RTLD_GLOBAL)
   _hdf5_hl = ctypes.CDLL('/usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5_hl.so', mode=ctypes.RTLD_GLOBAL)
   _reb = ctypes.CDLL('/opt/rebound/src/librebound.so', mode=ctypes.RTLD_GLOBAL)
-  _chain = ctypes.CDLL('chainbuilder.so', mode=ctypes.RTLD_GLOBAL)
+  _chain = ctypes.CDLL('/opt/chains/chainbuilder/chainbuilder.so', mode=ctypes.RTLD_GLOBAL)
 else: # probably macOS on my laptop
   _chain = ctypes.CDLL('chainbuilder.so')
 _chain.run_sim.argtypes = (ctypes.c_int, ctypes.c_int, ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_int)
