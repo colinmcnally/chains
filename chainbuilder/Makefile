@@ -6,7 +6,7 @@ include Makefile.defs
 all: 
 	@echo ""
 	@echo "Compiling Rebound problem file ..."
-	$(CC) -I/opt/local/include -I../../src/ -Wl,-rpath,./ $(OPT) $(PREDEF) problem.c -L. -lrebound $(LIB) -L/opt/local/lib -lhdf5 -lhdf5_hl -o rebound
+	$(CC) $(INC) -I/opt/local/include -I../../src/ -Wl,-rpath,./ $(OPT) $(PREDEF) problem.c -L. -lrebound $(LIB) -L/opt/local/lib -lhdf5 -lhdf5_hl -o rebound
 	$(CC) -c -I/opt/local/include -I../../src/  $(OPT) $(PREDEF) problem.c -fPIC -o chainbuilder.o
 	$(CC) -L. -lrebound $(LIB) -L/opt/local/lib -lhdf5 -lhdf5_hl -shared -o chainbuilder.so chainbuilder.o
 	@echo ""
