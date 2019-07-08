@@ -210,7 +210,7 @@ void out_to_hdf5(struct output_structure* out){
     dims[1] = out->nout;
 
     char filename[500];
-    sprintf(filename,"orbits_%i_%i:%i_%.2e_%s.h5", out->nchain, out->p, out->q, out->pmass[0], out->seqstr);
+    sprintf(filename,"orbits_%i_%i:%i_%.2e_%s.h5", out->nchain, out->p+out->q, out->p, out->pmass[0], out->seqstr);
     /* create a HDF5 file */
     file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 

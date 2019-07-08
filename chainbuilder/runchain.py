@@ -1,5 +1,6 @@
 # calls custom Rebound setup, as a library, which outputs to a HDF5 file
 
+import chainmodels
 import ctypes
 import numpy as np
 import sys
@@ -21,12 +22,15 @@ def run_sim( nchain, p, tmax, tdep, deltatdep, seqnum):
     _chain.run_sim(ctypes.c_int(nchain), ctypes.c_int(p), ctypes.c_double(tmax), ctypes.c_double(tdep), 
                    ctypes.c_double(deltatdep), ctypes.c_int(seqnum))
 
-
 #set run times
+runindex = int(sys.argv[1])
 
-nchain = sys.argv[1]
-p = sys.argv[2]
-seqnum = int(sys.argv[3])
+keys = list(chainmodels.runs.keys())
+keys = sorted(keys)
+hashkey = keys[runindex]
+nchain, p, seqnum = chainmodels.runs[hashkey] 
+print('chainmodel dict length ', len(chainmodels.runs))
+print('nchain ', nchain,' p ',p,' realiz ', seqnum,' hashkey ',hashkey)
 
 # run for 1e8 Kepler times
 pert = 1e4*seqnum # vary the end time of ramping
@@ -36,4 +40,4 @@ deltatdep = tdep + pert
 tmax = tdep + deltatdep + 1e8 * keplertime
 
 # fire it off in pure C
-run_sim(9, 6, tmax, tdep, deltatdep, 125)
+run_sim(nchain, p, tmax, tdep, deltatdep, seqnum)
