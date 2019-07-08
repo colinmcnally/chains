@@ -1,6 +1,9 @@
 Bootstrap:docker
 From:ubuntu:disco
 
+%environment
+    export PYTHONPATH=/opt/chains/chainbuilder
+
 %post
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
