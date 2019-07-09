@@ -389,8 +389,9 @@ double get_particle_r(struct reb_particle* p, struct reb_particle* com){
 
 void heartbeat(struct reb_simulation* r){
 
-    if(reb_output_check(r, 20.*M_PI)){
+    if(reb_output_check(r, 200.*M_PI)){
         reb_output_timing(r, out.tmax);
+        printf("\n");
     }
     if(reb_output_check(r, out.dtout) && (r->t > 0.0 && r->t >= out.dtout)){
         reb_integrator_synchronize(r);

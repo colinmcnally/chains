@@ -23,7 +23,7 @@ def run_sim( nchain, p, tmax, tdep, deltatdep, seqnum):
                    ctypes.c_double(deltatdep), ctypes.c_int(seqnum))
 
 #set run times
-runindex = int(sys.argv[1]-1) #job array indexes start at 1
+runindex = int(sys.argv[1])-1 #job array indexes start at 1
 
 keys = list(chainmodels.runs.keys())
 keys = sorted(keys)
