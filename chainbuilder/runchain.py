@@ -33,8 +33,8 @@ print('chainmodel dict length ', len(chainmodels.runs))
 print('nchain ', nchain,' p ',p,' realiz ', seqnum,' hashkey ',hashkey)
 
 # run for 1e8 Kepler times
-pert = 1e3*keplertime*seqnum # vary the end time of ramping
 keplertime = 2.0 * np.pi * 0.1**1.5 # orbit at 0.1
+pert = 1e3*keplertime*seqnum # vary the end time of ramping
 tdep = 4e5 * keplertime + pert
 deltatdep = tdep 
 tmax = tdep + deltatdep + 1e8 * keplertime
