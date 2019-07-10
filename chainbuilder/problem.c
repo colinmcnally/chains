@@ -102,18 +102,18 @@ void run_sim(const int nchain, const int p, const double tmax,
     double ai = out.ai;
     int errcode;
     for (int ip=0; ip < out.nchain; ip++){
-      // struct reb_particle reb_tools_orbit_to_particle_err(double G, struct reb_particle primary, 
-      //      double m, double a, double e, double i, double Omega, double omega, double f, int* err)
-      //randomize inclination, eccentricity, true anomaly - from seed
-      struct reb_particle pt = reb_tools_orbit_to_particle_err( 
-              r->G, star, out.pmass[ip], ai, 0.01, 0.01, 0.0, 0.0, (double)ip, &errcode);
-      double rhill = ai * pow(pt.m/(3.*star.m),1./3.);    // Hill radius
-      pt.r = rhill; // Set planet radius to hill radius
-                    // A collision is recorded when planets get within their hill radius
-                    // The hill radius of the particles might change, so it should be recalculated after a while
-      pt.lastcollision = 0;
-      reb_add(r, pt);
-      ai = ai * pow(out.p / (out.p + out.q + 0.05), -2./3.);
+        // struct reb_particle reb_tools_orbit_to_particle_err(double G, struct reb_particle primary, 
+        //      double m, double a, double e, double i, double Omega, double omega, double f, int* err)
+        //randomize inclination, eccentricity, true anomaly - from seed
+        struct reb_particle pt = reb_tools_orbit_to_particle_err( 
+                r->G, star, out.pmass[ip], ai, 0.01, 0.01, 0.0, 0.0, (double)ip, &errcode);
+        double rhill = ai * pow(pt.m/(3.*star.m),1./3.);    // Hill radius
+        pt.r = rhill; // Set planet radius to hill radius
+                      // A collision is recorded when planets get within their hill radius
+                      // The hill radius of the particles might change, so it should be recalculated after a while
+        pt.lastcollision = 0;
+        reb_add(r, pt);
+        ai = ai * pow(out.p / (out.p + out.q + 0.05), -2./3.);
     } 
 
 
@@ -121,11 +121,12 @@ void run_sim(const int nchain, const int p, const double tmax,
     char filename[512];
     sprintf(filename,"orbits_%i_%i:%i_%.2e_%s.snap", out.nchain, out.p+out.q, out.p, out.pmass[0], out.seqstr);
     if (file_exists(filename)) {
-      printf("Restart triggered by %s\n", filename);
-      r = reb_create_simulation_from_binary(filename);
-      out_from_hdf5(&out);
-      // now reset out.iout
-      out.iout = (int)(r->t/out.dtout)+1;
+        printf("Restart triggered by %s\n", filename);
+        r = reb_create_simulation_from_binary(filename);
+        out_from_hdf5(&out);
+        // now reset out.iout
+        out.iout = (int)(r->t/out.dtout)+1;
+        printf(" r->t %e out.tcollstop %e\n", r->t, out.tcollstop);
     }
 
     // Do all the function pointer stuff _after_ reload from snapshot!
@@ -140,16 +141,14 @@ void run_sim(const int nchain, const int p, const double tmax,
 
     next_snap_walltime = SNAP_WALLTIME_INTERVAL;
 
-    // only actually run if not at tmax.
-    if (out.tmax > r->t){
-      reb_move_to_com(r);          
-
-      reb_integrate(r, out.tmax);
-   
-      output_snapshot(&out, r);
-      out_to_hdf5(&out);
+    // only actually run if not at tmax, or if tcollstop is not yet set to > 0
+    if (out.tmax > r->t && out.tcollstop < 0.0 ){
+        reb_move_to_com(r);          
+        reb_integrate(r, out.tmax);
+        output_snapshot(&out, r);
+        out_to_hdf5(&out);
     }else{
-      printf("This snapshot was already pas tthe tmax of the simulation, so exiting. r->t %e out.tmax %e\n", r->t, out.tmax);
+        printf("This snapshot was already past the tmax of the simulation, or a collision has happened so exiting.\n");
     }
     free_output_structure(&out);
 
@@ -491,9 +490,9 @@ void heartbeat(struct reb_simulation* r){
 
     //r->walltime is a double of seconds since start in the step routine only
     if(r->walltime >= next_snap_walltime){
-      output_snapshot(&out, r);
-      out_to_hdf5(&out);
-      next_snap_walltime += SNAP_WALLTIME_INTERVAL;
+        output_snapshot(&out, r);
+        out_to_hdf5(&out);
+        next_snap_walltime += SNAP_WALLTIME_INTERVAL;
     }
     if(reb_output_check(r, 200.*M_PI)){
         reb_output_timing(r, out.tmax);
@@ -537,6 +536,4 @@ void heartbeat(struct reb_simulation* r){
         out.iout += 1;
         reb_move_to_com(r); 
     }
-    // should save simulation archives of snapshots here for a slected bunch of random times?
-    //no, just randomize the evaporations scheduale
 }
