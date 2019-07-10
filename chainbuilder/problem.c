@@ -6,10 +6,13 @@
 #include <math.h>
 #include <assert.h>
 #include <string.h>
+#include <sys/stat.h>
 #include "rebound.h"
-
 #include "hdf5.h"
 #include "hdf5_hl.h"
+
+// snapshot interval in seconds
+#define SNAP_WALLTIME_INTERVAL (60*30)
 
 struct output_structure {
   int nout;
@@ -58,6 +61,9 @@ struct output_structure {
 
 struct output_structure out;
 
+double next_snap_walltime;
+
+bool file_exists(const char* file);
 int collision_stop(struct reb_simulation* const r, struct reb_collision c);
 void migration_forces(struct reb_simulation* r);
 void migration_forces_tanaka_ward(struct reb_simulation* r);
@@ -65,6 +71,8 @@ void heartbeat(struct reb_simulation* r);
 void init_output_structure(struct output_structure* out, const int nchain, const int p, const double tmax,
              const double tdep, const double deltatdep, const int seqnum);
 void out_to_hdf5(struct output_structure* out);
+void out_from_hdf5(struct output_structure* out);
+void output_snapshot(struct output_structure* const out, struct reb_simulation* const r);
 void free_output_structure(struct output_structure* out);
 double disc_surface_density(const double r, const double t);
 double get_particle_r(struct reb_particle* p, struct reb_particle* com);
@@ -85,16 +93,6 @@ void run_sim(const int nchain, const int p, const double tmax,
     init_output_structure(&out, nchain, p, tmax, tdep, deltatdep, seqnum);
 
     struct reb_simulation* r = reb_create_simulation();
-    // Setup constants
-    r->integrator    = REB_INTEGRATOR_WHFAST;
-    //r->integrator    = REB_INTEGRATOR_IAS15;
-    r->dt            = 1e-2*2.*M_PI *pow(0.1, 1.5);        // in year/(2*pi)
-    r->collision        = REB_COLLISION_DIRECT;
-    r->collision_resolve     = collision_stop;        // Set function pointer for collision recording.
-    r->additional_forces = migration_forces_tanaka_ward;     //Set function pointer to add dissipative forces.
-    r->heartbeat = heartbeat;  
-    r->force_is_velocity_dependent = 1;
-
     // Initial conditions
     // Parameters are those of Lee & Peale 2002, Figure 4. 
     struct reb_particle star = {0};
@@ -119,16 +117,52 @@ void run_sim(const int nchain, const int p, const double tmax,
     } 
 
 
-    reb_move_to_com(r);          
+    // if a snapshop exists, just do a restart
+    char filename[512];
+    sprintf(filename,"orbits_%i_%i:%i_%.2e_%s.snap", out.nchain, out.p+out.q, out.p, out.pmass[0], out.seqstr);
+    if (file_exists(filename)) {
+      printf("Restart triggered by %s\n", filename);
+      r = reb_create_simulation_from_binary(filename);
+      out_from_hdf5(&out);
+      // now reset out.iout
+      out.iout = (int)(r->t/out.dtout)+1;
+    }
 
-    //system("rm -v orbits.txt"); // delete previous output file
+    // Do all the function pointer stuff _after_ reload from snapshot!
+    r->integrator    = REB_INTEGRATOR_WHFAST;
+    //r->integrator    = REB_INTEGRATOR_IAS15;
+    r->dt            = 1e-2*2.*M_PI *pow(0.1, 1.5);        // in year/(2*pi)
+    r->collision        = REB_COLLISION_DIRECT;
+    r->collision_resolve     = collision_stop;        // Set function pointer for collision recording.
+    r->additional_forces = migration_forces_tanaka_ward;     //Set function pointer to add dissipative forces.
+    r->heartbeat = heartbeat;  
+    r->force_is_velocity_dependent = 1;
 
-    reb_integrate(r, out.tmax);
+    next_snap_walltime = SNAP_WALLTIME_INTERVAL;
+
+    // only actually run if not at tmax.
+    if (out.tmax > r->t){
+      reb_move_to_com(r);          
+
+      reb_integrate(r, out.tmax);
    
-    out_to_hdf5(&out);
+      output_snapshot(&out, r);
+      out_to_hdf5(&out);
+    }else{
+      printf("This snapshot was already pas tthe tmax of the simulation, so exiting. r->t %e out.tmax %e\n", r->t, out.tmax);
+    }
     free_output_structure(&out);
 
     printf("\n");
+}
+
+/**
+ * Check if a file exists
+ * @return true if and only if the file exists, false else
+ */
+bool file_exists(const char* file) {
+    struct stat buf;
+    return (stat(file, &buf) == 0);
 }
 
 void init_output_structure(struct output_structure* out,
@@ -201,7 +235,7 @@ void init_output_structure(struct output_structure* out,
 }
 
 void out_to_hdf5(struct output_structure* out){
-    hid_t       file_id;
+    hid_t       fileid;
     //hsize_t     dims[RANK]={2,3};
     int datarank = 2;
     hsize_t scalardims[1] = {out->nout};
@@ -212,9 +246,9 @@ void out_to_hdf5(struct output_structure* out){
     char filename[500];
     sprintf(filename,"orbits_%i_%i:%i_%.2e_%s.h5", out->nchain, out->p+out->q, out->p, out->pmass[0], out->seqstr);
     /* create a HDF5 file */
-    file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    fileid = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
-    hid_t rootid = H5Gopen(file_id, "/", H5P_DEFAULT);
+    hid_t rootid = H5Gopen(fileid, "/", H5P_DEFAULT);
     H5LTset_attribute_int( rootid, "/", "nchain", &out->nchain, 1);
     H5LTset_attribute_int( rootid, "/", "nout",   &out->nout, 1);
     H5LTset_attribute_int( rootid, "/", "lastout",&out->iout, 1);
@@ -237,28 +271,88 @@ void out_to_hdf5(struct output_structure* out){
     H5LTset_attribute_double( rootid, "/", "deltatdep",   &out->deltatdep, 1);
     H5LTset_attribute_double( rootid, "/", "tcollstop",   &out->tcollstop, 1);
 
-    H5LTmake_dataset_double(file_id, "/t", 1, scalardims, out->t);
-    H5LTmake_dataset_double(file_id, "/d", datarank, dims, out->d);
-    H5LTmake_dataset_double(file_id, "/v", datarank, dims, out->v);
-    H5LTmake_dataset_double(file_id, "/h", datarank, dims, out->h);
-    H5LTmake_dataset_double(file_id, "/P", datarank, dims, out->P);
-    H5LTmake_dataset_double(file_id, "/n", datarank, dims, out->n);
-    H5LTmake_dataset_double(file_id, "/a", datarank, dims, out->a);
-    H5LTmake_dataset_double(file_id, "/e", datarank, dims, out->e);
-    H5LTmake_dataset_double(file_id, "/inc", datarank, dims, out->inc);
-    H5LTmake_dataset_double(file_id, "/Omega", datarank, dims, out->Omega);
-    H5LTmake_dataset_double(file_id, "/omega", datarank, dims, out->omega);
-    H5LTmake_dataset_double(file_id, "/pomega", datarank, dims, out->pomega);
-    H5LTmake_dataset_double(file_id, "/f", datarank, dims, out->f);
-    H5LTmake_dataset_double(file_id, "/M", datarank, dims, out->M);
-    H5LTmake_dataset_double(file_id, "/l", datarank, dims, out->l);
-    H5LTmake_dataset_double(file_id, "/theta", datarank, dims, out->theta);
-    H5LTmake_dataset_double(file_id, "/T", datarank, dims, out->T);
-    H5LTmake_dataset_double(file_id, "/rhill", datarank, dims, out->rhill);
-    H5LTmake_dataset_double(file_id, "/Sigma", datarank, dims, out->Sigma);
+    H5Gclose (rootid);
+
+    H5LTmake_dataset_double(fileid, "/t", 1, scalardims, out->t);
+    H5LTmake_dataset_double(fileid, "/d", datarank, dims, out->d);
+    H5LTmake_dataset_double(fileid, "/v", datarank, dims, out->v);
+    H5LTmake_dataset_double(fileid, "/h", datarank, dims, out->h);
+    H5LTmake_dataset_double(fileid, "/P", datarank, dims, out->P);
+    H5LTmake_dataset_double(fileid, "/n", datarank, dims, out->n);
+    H5LTmake_dataset_double(fileid, "/a", datarank, dims, out->a);
+    H5LTmake_dataset_double(fileid, "/e", datarank, dims, out->e);
+    H5LTmake_dataset_double(fileid, "/inc", datarank, dims, out->inc);
+    H5LTmake_dataset_double(fileid, "/Omega", datarank, dims, out->Omega);
+    H5LTmake_dataset_double(fileid, "/omega", datarank, dims, out->omega);
+    H5LTmake_dataset_double(fileid, "/pomega", datarank, dims, out->pomega);
+    H5LTmake_dataset_double(fileid, "/f", datarank, dims, out->f);
+    H5LTmake_dataset_double(fileid, "/M", datarank, dims, out->M);
+    H5LTmake_dataset_double(fileid, "/l", datarank, dims, out->l);
+    H5LTmake_dataset_double(fileid, "/theta", datarank, dims, out->theta);
+    H5LTmake_dataset_double(fileid, "/T", datarank, dims, out->T);
+    H5LTmake_dataset_double(fileid, "/rhill", datarank, dims, out->rhill);
+    H5LTmake_dataset_double(fileid, "/Sigma", datarank, dims, out->Sigma);
    
     /* close file */
-    H5Fclose (file_id);
+    H5Fclose (fileid);
+}
+
+//This function is only for re-populating on restart, so assume the out structure is already initialized
+void out_from_hdf5(struct output_structure* out){
+    hid_t       fileid;
+    //hsize_t     dims[RANK]={2,3};
+    char filename[512];
+    sprintf(filename,"orbits_%i_%i:%i_%.2e_%s.h5", out->nchain, out->p+out->q, out->p, out->pmass[0], out->seqstr);
+
+    /* create a HDF5 file */
+    fileid = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+
+    hid_t rootid = H5Gopen(fileid, "/", H5P_DEFAULT);
+    H5LTget_attribute_int( rootid, "/", "nchain", &out->nchain);
+    H5LTget_attribute_int( rootid, "/", "nout",   &out->nout);
+    H5LTget_attribute_int( rootid, "/", "lastout",&out->iout);
+    H5LTget_attribute_int( rootid, "/", "p",      &out->p);
+    H5LTget_attribute_int( rootid, "/", "q",      &out->q);
+    H5LTget_attribute_double( rootid, "/", "pmass", out->pmass);
+    H5LTget_attribute_double( rootid, "/", "ai",  &out->ai);
+
+    H5LTget_attribute_double( rootid, "/", "Sigma0",   &out->Sigma0);
+    H5LTget_attribute_double( rootid, "/", "redge",   &out->redge);
+    H5LTget_attribute_double( rootid, "/", "deltaredge",   &out->deltaredge);
+    H5LTget_attribute_double( rootid, "/", "aspectratio0",   &out->aspectratio0);
+    H5LTget_attribute_double( rootid, "/", "alpha",   &out->alpha);
+    H5LTget_attribute_double( rootid, "/", "flaringindex",   &out->flaringindex);
+    H5LTget_attribute_double( rootid, "/", "ffudge",   &out->ffudge);
+    H5LTget_attribute_double( rootid, "/", "tmax",   &out->tmax);
+    H5LTget_attribute_double( rootid, "/", "dtout",   &out->dtout);
+    H5LTget_attribute_double( rootid, "/", "tdep",   &out->tdep);
+    H5LTget_attribute_double( rootid, "/", "deltatdep",   &out->deltatdep);
+    H5LTget_attribute_double( rootid, "/", "tcollstop",   &out->tcollstop);
+
+    H5Gclose (rootid);
+
+    H5LTread_dataset_double(fileid, "/t", out->t);
+    H5LTread_dataset_double(fileid, "/d", out->d);
+    H5LTread_dataset_double(fileid, "/v", out->v);
+    H5LTread_dataset_double(fileid, "/h", out->h);
+    H5LTread_dataset_double(fileid, "/P", out->P);
+    H5LTread_dataset_double(fileid, "/n", out->n);
+    H5LTread_dataset_double(fileid, "/a", out->a);
+    H5LTread_dataset_double(fileid, "/e", out->e);
+    H5LTread_dataset_double(fileid, "/inc", out->inc);
+    H5LTread_dataset_double(fileid, "/Omega", out->Omega);
+    H5LTread_dataset_double(fileid, "/omega", out->omega);
+    H5LTread_dataset_double(fileid, "/pomega", out->pomega);
+    H5LTread_dataset_double(fileid, "/f", out->f);
+    H5LTread_dataset_double(fileid, "/M", out->M);
+    H5LTread_dataset_double(fileid, "/l", out->l);
+    H5LTread_dataset_double(fileid, "/theta", out->theta);
+    H5LTread_dataset_double(fileid, "/T", out->T);
+    H5LTread_dataset_double(fileid, "/rhill", out->rhill);
+    H5LTread_dataset_double(fileid, "/Sigma", out->Sigma);
+   
+    /* close file */
+    H5Fclose (fileid);
 }
 
 void free_output_structure(struct output_structure* out){
@@ -282,6 +376,12 @@ void free_output_structure(struct output_structure* out){
    free(out->T);
    free(out->rhill);
    free(out->Sigma);
+}
+
+void output_snapshot(struct output_structure* const out, struct reb_simulation* const r){
+    char filename[512];
+    sprintf(filename,"orbits_%i_%i:%i_%.2e_%s.snap", out->nchain, out->p+out->q, out->p, out->pmass[0], out->seqstr);
+    reb_output_binary(r, filename);
 }
 
 // Define our own collision resolve function.
@@ -389,9 +489,16 @@ double get_particle_r(struct reb_particle* p, struct reb_particle* com){
 
 void heartbeat(struct reb_simulation* r){
 
+    //r->walltime is a double of seconds since start in the step routine only
+    if(r->walltime >= next_snap_walltime){
+      output_snapshot(&out, r);
+      out_to_hdf5(&out);
+      next_snap_walltime += SNAP_WALLTIME_INTERVAL;
+    }
     if(reb_output_check(r, 200.*M_PI)){
         reb_output_timing(r, out.tmax);
         printf("\n");
+        printf(" walltime %e next snap %e\n",r->walltime, next_snap_walltime);
     }
     if(reb_output_check(r, out.dtout) && (r->t > 0.0 && r->t >= out.dtout)){
         reb_integrator_synchronize(r);
