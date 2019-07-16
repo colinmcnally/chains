@@ -26,6 +26,8 @@ plt.figure()
 for i in range(0, nplanets):
   #plt.plot(planets[0]['t'], planets[i]['a'])
   plt.plot(orb['t'][:ie], orb['a'][i,:ie])
+  plt.axvline(x = orb.attrs['tdep'][0], color='grey')
+  plt.axvline(x = orb.attrs['tdep'][0]+orb.attrs['deltatdep'][0], color='grey')
 plt.title('Semi-major axis')
 
 

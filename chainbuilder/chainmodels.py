@@ -19,7 +19,7 @@ for nchain in nchainaxis:
       ha.update(bytes(runtuple))
       key = ha.digest().hex()
       runs[key] = runtuple
-      filenames[key] = 'orbits_{}_{}:{}_{:.2e}_.h5'.format(nchain, p+1, p, 1e-5, realization) 
+      filenames[key] = 'orbits_{}_{}:{}_{:.2e}_{}.h5'.format(nchain, p+1, p, 1e-5, realization) 
  
 #output - sequence number - the hash of the runtuple
 
