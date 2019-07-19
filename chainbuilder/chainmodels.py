@@ -11,6 +11,7 @@ realizationaxis = np.arange(0, 10, dtype=np.int)
 
 runs = {}
 filenames = {}
+keys = {}
 for nchain in nchainaxis:
   for p in paxis:
     for realization in realizationaxis:
@@ -19,6 +20,7 @@ for nchain in nchainaxis:
       ha.update(bytes(runtuple))
       key = ha.digest().hex()
       runs[key] = runtuple
+      keys[runtuple] = key
       filenames[key] = 'orbits_{}_{}:{}_{:.2e}_{}.h5'.format(nchain, p+1, p, 1e-5, realization) 
  
 #output - sequence number - the hash of the runtuple
