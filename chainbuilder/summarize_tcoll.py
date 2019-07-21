@@ -86,14 +86,14 @@ plt.figure(figsize=(10,4))
 plt.scatter( x, y, c='black', s=5)
 plt.scatter( x, y, c=c, s=s)
 for i,model in enumerate(models):
-    plt.annotate('L{:d}, U{:d}, F{:d}'.format(nlong[model], nunfinished[model],
-                  nfinished[model]), (x[i],y[i]-0.35), fontsize=8)
+  plt.annotate('L{:d}, U{:d}, F{:d}'.format(nlong[model], nunfinished[model],
+                nfinished[model]), (x[i],y[i]-0.35), fontsize=8)
 plt.yticks([3,4,5,6], ['4:3','5:4','6:5','7:6'])
 plt.xlabel('Number of planets in chain')
 plt.ylabel('Resonance')
 plt.ylim((2.5,6.3))
 plt.xlim((2.5,10.95))
-plt.colorbar(label='mean(log( lifetime))')
+plt.colorbar(label='mean(log( time to collision ))')
 plt.title('Time to collision in resonant chains with q=$10^{-5}$')
 
 plt.tight_layout()
