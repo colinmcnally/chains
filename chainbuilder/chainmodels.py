@@ -25,4 +25,21 @@ for nchain in nchainaxis:
  
 #output - sequence number - the hash of the runtuple
 
-#needs to give a two-way mapping
+realizationaxis_ext1 = np.arange(10, 50, dtype=np.int)
+p = 4
+ncahin = 4
+runs_ext1 = {}
+filenames_ext1 = {}
+keys_ext1 = {}
+for realization in realizationaxis:
+  runtuple = (nchain, p, realization)
+  ha = sha1()
+  ha.update(bytes(runtuple))
+  key = ha.digest().hex()
+  runs_ext1[key] = runtuple
+  keys_ext1[runtuple] = key
+  filenames_ext1[key] = 'orbits_{}_{}:{}_{:.2e}_{}.h5'.format(nchain, p+1, p, 1e-5, realization) 
+ 
+runs_all = runs +runs_ext1
+filenames_all = filenames +filenames_ext1
+keys_all = keys +keys_ext1
