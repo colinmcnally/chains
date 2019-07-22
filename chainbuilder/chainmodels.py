@@ -31,7 +31,7 @@ ncahin = 4
 runs_ext1 = {}
 filenames_ext1 = {}
 keys_ext1 = {}
-for realization in realizationaxis:
+for realization in realizationaxis_ext1:
   runtuple = (nchain, p, realization)
   ha = sha1()
   ha.update(bytes(runtuple))
