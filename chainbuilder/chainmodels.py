@@ -40,6 +40,12 @@ for realization in realizationaxis:
   keys_ext1[runtuple] = key
   filenames_ext1[key] = 'orbits_{}_{}:{}_{:.2e}_{}.h5'.format(nchain, p+1, p, 1e-5, realization) 
  
-runs_all = runs +runs_ext1
-filenames_all = filenames +filenames_ext1
-keys_all = keys +keys_ext1
+def merge_dict(a,b):
+  c = {}
+  for d in (a, c):
+    c.update(d)
+  return c 
+
+runs_all = merge_dict(runs, runs_ext1)
+filenames_all =  merge_dict(filenames, filenames_ext1)
+keys_all =  merge_dict(keys, keys_ext1)
