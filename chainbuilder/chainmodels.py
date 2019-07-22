@@ -27,7 +27,7 @@ for nchain in nchainaxis:
 
 realizationaxis_ext1 = np.arange(10, 50, dtype=np.int)
 p = 4
-ncahin = 4
+nchain = 9
 runs_ext1 = {}
 filenames_ext1 = {}
 keys_ext1 = {}
