@@ -5,6 +5,8 @@
 import numpy as np
 from hashlib import sha1
 
+tkepler = 2*np.pi*0.1**1.5
+
 nchainaxis = np.arange(3, 11, dtype=np.int)
 paxis = np.arange(3, 7, dtype=np.int)
 realizationaxis = np.arange(0, 10, dtype=np.int)

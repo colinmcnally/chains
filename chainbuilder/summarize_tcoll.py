@@ -51,6 +51,7 @@ meanlog = {}
 nfinished = {}
 nlong = {}
 nunfinished = {}
+tlifes = {}
 for model in models:
   selection = lifetable[np.nonzero(
                  np.logical_and(
@@ -59,6 +60,7 @@ for model in models:
                  )
                  )]
   var[model]     = np.var(selection[:]['tlife'])
+  tlifes[model]  = selection[:]['tlife']
   meanlog[model] = np.log10(selection[:]['tlife']).mean()
   nfinished[model] = len(selection)
   nlong[model]= np.count_nonzero(
@@ -98,5 +100,24 @@ plt.title('Time to collision in resonant chains with q=$10^{-5}$')
 
 plt.tight_layout()
 
+fig = plt.figure(figsize=(8,7))
+for i,model in enumerate(models):
+  ax = fig.add_subplot(4,8,(x[i]-3)+8*(3-(y[i]-3))+1, xticks=[],yticks=[1e5, 1e6, 1e7, 1e8])
+  ax.set_yscale('log')
+  vals = np.sort(tlifes[model])
+  if len(vals) > 0 :
+    ax.semilogy(vals,'-o',markersize=2, color='C0')
+  if len(vals) < 10 :
+    ax.semilogy(np.arange(len(vals),10), [1e8] *(10-len(vals)),'^',markersize=4,color='C1')
+  ax.set_ylim((5e4,2e8))
+  if x[i] > 3:
+    ax.set_yticklabels([])
+  else:
+    ax.set_ylabel('{:d}:{:d}  '.format(y[i]+1, y[i]) +r'$t_{\rm coll}$')
+  if y[i] == 3:
+    ax.set_xlabel(r'$n_{\rm chain} =$'+'{:d}'.format(x[i]))
+fig.suptitle('Time to collision in resonant chains with q=$10^{-5}$')
+fig.subplots_adjust(wspace=0.05, hspace = 0.05, top=0.93, bottom=0.05, right=0.95, left=0.1)
+#plt.tight_layout()
 
 plt.show()
