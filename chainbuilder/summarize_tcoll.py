@@ -95,7 +95,7 @@ plt.xlabel('Number of planets in chain')
 plt.ylabel('Resonance')
 plt.ylim((2.5,6.3))
 plt.xlim((2.5,10.95))
-plt.colorbar(label='mean(log( time to collision ))')
+plt.colorbar(label='mean(log( time to collison ))')
 plt.title('Time to collision in resonant chains with q=$10^{-5}$')
 
 plt.tight_layout()
@@ -113,10 +113,10 @@ for i,model in enumerate(models):
   if x[i] > 3:
     ax.set_yticklabels([])
   else:
-    ax.set_ylabel('{:d}:{:d}  '.format(y[i]+1, y[i]) +r'$t_{\rm coll}$')
+    ax.set_ylabel('{:d}:{:d}  '.format(y[i]+1, y[i]) +r'$t_{\rm cross}$')
   if y[i] == 3:
     ax.set_xlabel(r'$n_{\rm chain} =$'+'{:d}'.format(x[i]))
-fig.suptitle('Time to collision in resonant chains with q=$10^{-5}$')
+fig.suptitle('Time to orbit crossing in resonant chains with q=$10^{-5}$')
 fig.subplots_adjust(wspace=0.05, hspace = 0.05, top=0.93, bottom=0.05, right=0.95, left=0.1)
 #plt.tight_layout()
 
