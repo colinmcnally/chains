@@ -52,7 +52,7 @@ nchain = 9
 runs_ext2 = {}
 filenames_ext2 = {}
 keys_ext2 = {}
-for realization in realizationaxis_ext1:
+for realization in realizationaxis_ext2:
   runtuple = (nchain, p, realization)
   ha = sha1()
   ha.update(bytes(runtuple))
