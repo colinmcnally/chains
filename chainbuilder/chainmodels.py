@@ -50,7 +50,7 @@ realizationaxis_ext2 = np.arange(50, 250, dtype=np.int)
 p = 4
 nchain = 9
 runs_ext2 = {}
-filenames_ext1 = {}
+filenames_ext2 = {}
 keys_ext2 = {}
 for realization in realizationaxis_ext1:
   runtuple = (nchain, p, realization)
