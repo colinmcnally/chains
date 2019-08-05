@@ -27,6 +27,8 @@ for nchain in nchainaxis:
  
 #output - sequence number - the hash of the runtuple
 
+
+#add extensions to runs for a single chain configuration
 realizationaxis_ext1 = np.arange(10, 50, dtype=np.int)
 p = 4
 nchain = 9
@@ -41,13 +43,30 @@ for realization in realizationaxis_ext1:
   runs_ext1[key] = runtuple
   keys_ext1[runtuple] = key
   filenames_ext1[key] = 'orbits_{}_{}:{}_{:.2e}_{}.h5'.format(nchain, p+1, p, 1e-5, realization) 
- 
+
+
+# this manner of adding extensions is sort of awkward, but it does allow for lots of generality
+realizationaxis_ext2 = np.arange(50, 250, dtype=np.int)
+p = 4
+nchain = 9
+runs_ext2 = {}
+filenames_ext1 = {}
+keys_ext2 = {}
+for realization in realizationaxis_ext1:
+  runtuple = (nchain, p, realization)
+  ha = sha1()
+  ha.update(bytes(runtuple))
+  key = ha.digest().hex()
+  runs_ext2[key] = runtuple
+  keys_ext2[runtuple] = key
+  filenames_ext2[key] = 'orbits_{}_{}:{}_{:.2e}_{}.h5'.format(nchain, p+1, p, 1e-5, realization) 
+  
 def merge_dict(a,b):
   c = {}
   for d in (a, c):
     c.update(d)
   return c 
 
-runs_all = merge_dict(runs, runs_ext1)
-filenames_all =  merge_dict(filenames, filenames_ext1)
-keys_all =  merge_dict(keys, keys_ext1)
+runs_all = merge_dict(merge_dict(runs, runs_ext1), runs_ext2)
+filenames_all =  merge_dict(merge_dict(filenames, filenames_ext1), filenames_ext2)
+keys_all =  merge_dict(merge_dict(keys, keys_ext1), keys_ext2)

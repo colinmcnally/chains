@@ -1,0 +1,17 @@
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -N cb3
+#$ -pe smp 1
+#$ -l h_vmem=1G
+#$ -l h_rt=72:0:0
+#$ -t 1-200
+
+#this setting would limit the number of concurrent jobs
+##$ -tc 128
+
+# Load the application module
+module load singularity/2.6.1
+
+singularity exec chains.simg python3 /opt/chains/chainbuilder/runchain3.py ${SGE_TASK_ID}
+
