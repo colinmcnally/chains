@@ -1,12 +1,12 @@
 # chains
 
-This is a prototype built to try out some thing about managing and analyzing scans
+This is a prototype built to try out some things about managing and analyzing scans
 of n-body simulations. Singularity containers are used to provide a repeatable and
 portable environment for building and executing code. The idea is that this is 
 particularly handy when dealing with myriad dependencies, like Python based 
 analysis scripts tend to end up having.
 
-The basic probem this system handles is the long-term stability of resonant 
+The basic problem this system handles is the long-term stability of resonant 
 chains of planets, in the style of:
 
 > Matsumoto, Y., Nagasawa, M., & Ida, S. (2012). 
@@ -15,9 +15,9 @@ chains of planets, in the style of:
 
 The first set of results generated confirms the basic pattern in
 Matsumoto et al. (2012), that although chains in mean motion resonance (MMR) have 
-much longer stability times than nonresonant ones with similar spacing, there exists 
+much longer stability times than non-resonant ones with similar spacing, there exists 
 a critical length of chain beyond which the stability timescale rapidly decreases.
-For planets of planet mass / star mass ratio q=1e-5 they give critcal chain lengths 
+For planets of planet mass / star mass ratio q=1e-5 they give critical chain lengths 
 of 8 in 6:5 MMR and 4 in 7:6 MMR.
 
 The data from these simulations on the orbit crossing time (proxy for stability time)
