@@ -151,6 +151,7 @@ void run_sim(const int nchain, const int p, const double tmax,
         out_to_hdf5(&out);
     }else{
         printf("This snapshot was already past the tmax of the simulation, or a collision has happened so exiting.\n");
+        printf(" r->t %e out.tmax %e out.tcollstop %e\n", r->t, out.tmax, out.tcollstop);
     }
     free_output_structure(&out);
 
