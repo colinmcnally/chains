@@ -38,6 +38,9 @@ pert = 1e3*keplertime*seqnum # vary the end time of ramping
 tdep = 4e5 * keplertime + pert
 deltatdep = tdep 
 tmax = tdep + deltatdep + 1e8 * keplertime
+if (nchain==9) and (p==4):
+  tmax = tdep + deltatdep + 1e9 * keplertime
+
 
 # fire it off in pure C
 run_sim(nchain, p, tmax, tdep, deltatdep, seqnum)
