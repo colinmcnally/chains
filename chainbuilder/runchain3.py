@@ -4,7 +4,8 @@ import chainmodels
 import ctypes
 import numpy as np
 import sys
-import sys.stdout
+# not in the Singularityhub build?
+#import sys.stdout
 
 
 # load the chainbuilder library, and set up argtypes for the run_sim symbol
@@ -34,7 +35,7 @@ print('chainmodel dict length ', len(chainmodels.runs_ext2))
 print('nchain ', nchain,' p ',p,' realiz ', seqnum,' hashkey ',hashkey)
 
 # flush stdout so that the above info makes it onto disc in a queue environment
-sys.stdout.flush()
+#sys.stdout.flush()
 
 # run for 1e8 Kepler times
 keplertime = 2.0 * np.pi * 0.1**1.5 # orbit at 0.1
