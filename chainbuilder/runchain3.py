@@ -4,9 +4,10 @@ import chainmodels
 import ctypes
 import numpy as np
 import sys
+import sys.stdout
 
 
-# load the chainbuilder library, and set up arrgtypes for the run_sim symbol
+# load the chainbuilder library, and set up argtypes for the run_sim symbol
 if sys.platform == 'linux': # assume our Singularity container
   _hdf5 = ctypes.CDLL('/usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.so', mode=ctypes.RTLD_GLOBAL)
   _hdf5_hl = ctypes.CDLL('/usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5_hl.so', mode=ctypes.RTLD_GLOBAL)
@@ -32,12 +33,15 @@ nchain, p, seqnum = chainmodels.runs_ext2[hashkey]
 print('chainmodel dict length ', len(chainmodels.runs_ext2))
 print('nchain ', nchain,' p ',p,' realiz ', seqnum,' hashkey ',hashkey)
 
+# flush stdout so that the above info makes it onto disc in a queue environment
+sys.stdout.flush()
+
 # run for 1e8 Kepler times
 keplertime = 2.0 * np.pi * 0.1**1.5 # orbit at 0.1
 pert = 1e3*keplertime*seqnum # vary the end time of ramping
 tdep = 4e5 * keplertime + pert
 deltatdep = tdep 
-tmax = tdep + deltatdep + 1e8 * keplertime
+tmax = tdep + deltatdep + 1e9 * keplertime
 
 # fire it off in pure C
 run_sim(nchain, p, tmax, tdep, deltatdep, seqnum)
