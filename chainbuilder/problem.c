@@ -1,5 +1,7 @@
-// for geneerating 
-//derived from the REBound example
+// For generating and evolving resonant chain systems
+// Derived from the RREBOUND example for migrating planets
+// Keeps pretty close to the methods of Yuji Matsumoto, Makiko Nagasawa, Shigeru Ida 
+//                                      2012Icar..221..624M
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -117,7 +119,7 @@ void run_sim(const int nchain, const int p, const double tmax,
     } 
 
 
-    // if a snapshop exists, just do a restart
+    // if a snapshot exists, just do a restart
     char filename[512];
     sprintf(filename,"orbits_%i_%i:%i_%.2e_%s.snap", out.nchain, out.p+out.q, out.p, out.pmass[0], out.seqstr);
     if (file_exists(filename)) {
@@ -175,7 +177,7 @@ void init_output_structure(struct output_structure* out,
     const double aspectratio0 = 0.035;
     const double alpha        = 1.0;
     const double flaringindex = 2.0/7.0;
-    const double ffudge       = 1.0/100.0; //fudge factor for matsumoto et al. 2012 - not sure on sign
+    const double ffudge       = 1.0/100.0; //fudge factor for Matsumoto et al. 2012 - not sure on sign
     const double dtout        = 500.0 * 2.0*M_PI*pow(0.1,1.5);
 
     const double starmass = 1.0;
@@ -406,7 +408,8 @@ int collision_stop(struct reb_simulation* const r, struct reb_collision c){
     const double cz = p1.z - p2.z;
     const double rcoll = sqrt(cx*cx + cy*cy + cz*cz);
 
-    //check if we are really within the current rhill at present position
+    // check if we are really within the current rhill at present position
+    // this could be several other realted ccriteria, like mutual Hill radius
     if (rhill1 > rcoll || rhill2 > rcoll){
         r->status = REB_EXIT_COLLISION;
         r->particles[c.p1].lastcollision = r->t;
