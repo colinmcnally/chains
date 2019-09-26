@@ -14,56 +14,59 @@
 #include "hdf5_hl.h"
 
 // snapshot interval in seconds
-#define SNAP_WALLTIME_INTERVAL (60*30)
+#define SNAP_WALLTIME_INTERVAL (60.0*30)
+// walltime limit interval in seconds - 15 min less than 72 hours
+#define WALLTIME_LIMIT (60.0*60*24*3 - 15*60.0)
 
 struct output_structure {
-  int nout;
-  int iout;
-  int nchain;
-  int p;
-  int q;
-  char seqstr[256];
-  double G;
-  double starmass;
-  double *pmass; 
-  double ai;
-  double Sigma0;
-  double redge;
-  double deltaredge;
-  double aspectratio0;
-  double alpha;
-  double flaringindex;
-  double ffudge;
-  double tmax;
-  double dtout;
-  double tdep;
-  double deltatdep;
-  double tcollstop; ///<Init to -1.0 and set if stopped due to collision
-  double *t;
-  // the memebrs of the reb_orbit structure, as arrays
-  double *d;        ///< Radial distance from central object
-  double *v;        ///< velocity relative to central object's velocity
-  double *h;        ///< Angular momentum
-  double *P;        ///< Orbital period
-  double *n;        ///< Mean motion
-  double *a;        ///< Semi-major axis
-  double *e;        ///< Eccentricity
-  double *inc;      ///< Inclination
-  double *Omega;    ///< Longitude of ascending node
-  double *omega;    ///< Argument of pericenter
-  double *pomega;   ///< Longitude of pericenter
-  double *f;        ///< True anomaly
-  double *M;        ///< Mean anomaly
-  double *l;        ///< Mean Longitude
-  double *theta;    ///< True Longitude
-  double *T;        ///< Time of pericenter passage
-  double *rhill;    ///< Circular Hill radius 
-  double *Sigma;    ///< Disc gas surface denisty at planet location
+    int nout;
+    int iout;
+    int nchain;
+    int p;
+    int q;
+    char seqstr[256];
+    double G;
+    double starmass;
+    double *pmass; 
+    double ai;
+    double Sigma0;
+    double redge;
+    double deltaredge;
+    double aspectratio0;
+    double alpha;
+    double flaringindex;
+    double ffudge;
+    double tmax;
+    double dtout;
+    double tdep;
+    double deltatdep;
+    double tcollstop; ///<Init to -1.0 and set if stopped due to collision
+    double *t;
+    // the memebrs of the reb_orbit structure, as arrays
+    double *d;        ///< Radial distance from central object
+    double *v;        ///< velocity relative to central object's velocity
+    double *h;        ///< Angular momentum
+    double *P;        ///< Orbital period
+    double *n;        ///< Mean motion
+    double *a;        ///< Semi-major axis
+    double *e;        ///< Eccentricity
+    double *inc;      ///< Inclination
+    double *Omega;    ///< Longitude of ascending node
+    double *omega;    ///< Argument of pericenter
+    double *pomega;   ///< Longitude of pericenter
+    double *f;        ///< True anomaly
+    double *M;        ///< Mean anomaly
+    double *l;        ///< Mean Longitude
+    double *theta;    ///< True Longitude
+    double *T;        ///< Time of pericenter passage
+    double *rhill;    ///< Circular Hill radius 
+    double *Sigma;    ///< Disc gas surface denisty at planet location
 };
 
 struct output_structure out;
 
 double next_snap_walltime;
+double next_walltime_limit;
 
 bool file_exists(const char* file);
 int collision_stop(struct reb_simulation* const r, struct reb_collision c);
@@ -80,6 +83,7 @@ double disc_surface_density(const double r, const double t);
 double get_particle_r(struct reb_particle* p, struct reb_particle* com);
 void run_sim(const int nchain, const int p, const double tmax,
              const double tdep, const double deltatdep, const int seqnum);
+ 
 
 int main(int argc, char* argv[]){
     // set output counter
@@ -142,6 +146,7 @@ void run_sim(const int nchain, const int p, const double tmax,
     r->force_is_velocity_dependent = 1;
 
     next_snap_walltime = SNAP_WALLTIME_INTERVAL;
+    next_walltime_limit = WALLTIME_LIMIT + r->walltime;
 
     // only actually run if not at tmax, or if tcollstop is not yet set to > 0
     if (out.tmax > r->t && out.tcollstop < 0.0 ){
@@ -498,10 +503,15 @@ void heartbeat(struct reb_simulation* r){
         out_to_hdf5(&out);
         next_snap_walltime += SNAP_WALLTIME_INTERVAL;
     }
+    if(r->walltime >= next_walltime_limit){
+        output_snapshot(&out, r);
+        out_to_hdf5(&out);
+        reb_exit("Exceeded walltime limit, stopping REBOUND\n");
+    }
     if(reb_output_check(r, 200.*M_PI)){
         reb_output_timing(r, out.tmax);
         printf("\n");
-        printf(" walltime %e next snap %e\n",r->walltime, next_snap_walltime);
+        printf(" walltime %e next snap %e next limit %e\n",r->walltime, next_snap_walltime, next_walltime_limit);
     }
     if(reb_output_check(r, out.dtout) && (r->t > 0.0 && r->t >= out.dtout)){
         reb_integrator_synchronize(r);
