@@ -96,6 +96,9 @@ int main(int argc, char* argv[]){
 
 void run_sim(const int nchain, const int p, const double tmax,
              const double tdep, const double deltatdep, const int seqnum){
+
+    printf("run_sim call with %i %i %i\n",nchain, p, seqnum);
+
     init_output_structure(&out, nchain, p, tmax, tdep, deltatdep, seqnum);
 
     struct reb_simulation* r = reb_create_simulation();
