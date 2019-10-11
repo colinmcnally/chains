@@ -15,8 +15,8 @@
 
 // snapshot interval in seconds
 #define SNAP_WALLTIME_INTERVAL (60.0*30)
-// walltime limit interval in seconds - 15 min less than 72 hours
-#define WALLTIME_LIMIT (60.0*60*24*3 - 15*60.0)
+// walltime limit interval in seconds - 90 min less than 72 hours
+#define WALLTIME_LIMIT (60.0*60*24*3 - 90*60.0)
 
 struct output_structure {
     int nout;
