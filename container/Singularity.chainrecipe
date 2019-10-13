@@ -29,6 +29,14 @@ From:ubuntu:disco
     apt-get install git -y
     apt-get install vim -y
     apt-get install libhdf5-dev -y 
+    apt-get install r-recommended -y
+    apt-get install r-cran-survival -y
+
+
+    # Install required R packages
+    R --slave -e 'install.packages(c("flexsurv"), repos="https://cloud.r-project.org/")'
+    R --slave -e 'install.packages(c("ggplot2"), repos="https://cloud.r-project.org/")'
+    R --slave -e 'install.packages(c("BayHaz"), depend = "Suggests", repos="https://cloud.r-project.org/")'
 
 
     # build the font cache
