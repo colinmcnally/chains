@@ -36,8 +36,6 @@ From:ubuntu:disco
     # Install required R packages
     R --slave -e 'install.packages(c("flexsurv"), repos="https://cloud.r-project.org/")'
     R --slave -e 'install.packages(c("ggplot2"), repos="https://cloud.r-project.org/")'
-    R --slave -e 'install.packages(c("BayHaz"), depend = "Suggests", repos="https://cloud.r-project.org/")'
-
 
     # build the font cache
     python3 -c "import matplotlib.pyplot"
