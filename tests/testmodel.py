@@ -2,7 +2,8 @@ import time
 import sys
 sys.path.append('/Users/colinm/vc/rebound')
 sys.path.append('../crbx')
-import chainmodel
+sys.path.append('../')
+import chaincalc
 import rebound
 
 #this is sort of a dummy driver
@@ -22,16 +23,18 @@ p = {'aspectratio0':0.035,
      'pmass':1e-5,
      'nchain':4,
      'q_res':3,
-     'p_res':40 }
+     'p_res':40,
+     'seq':0 }
 
 def runtest(p):
-    c = chainmodel.Model(p, wall_start)
+    c = chaincalc.Model(p)
 
     c.init_rebound()
 
     print(c.hash)
     print(c.sim.status())
 
+    c.set_wall_start(wall_start)
     try:
         c.sim.integrate(10000.0)
     except rebound.Collision:

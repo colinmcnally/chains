@@ -14,6 +14,7 @@
 #  A given set of modelsi (i.e. their hashes) will constitute a simulation campaign, and the driver will be a
 #  class which figure out how to get all the models to be completed
 import sys
+import os.path
 import hashlib
 import time
 import random
@@ -23,7 +24,7 @@ import rebound
 import reboundx
 
 class Model:
-    def __init__(self, params, wall_start, snap_wall_interval=60*60):
+    def __init__(self, params, snap_wall_interval=60*60):
         """ Params is a dict of parameters, easier to reuse when initializing in a loop
             aspectratio0
             sigma0
@@ -38,6 +39,7 @@ class Model:
             nchain
             p_res
             a0
+            seq
 
             some other values set as object attributes, but not intended to be modified
             G
@@ -58,7 +60,8 @@ class Model:
                      'nchain',
                      'p_res',
                      'q_res',
-                     'a0']
+                     'a0',
+                     'seq']
                      
         for parstr in paramlist:
             try:
@@ -76,14 +79,15 @@ class Model:
         # 1e-2 times the inner edge orbital time
         self.integrator_dt = 1e-2*2.0*np.pi* self.redge**1.5
         self.set_model_hash()
-        self.simarchive_filename = 'sim'+self.hash+'.rbsa'
-        self.status_filename = 'sim'+self.hash+'_status.json'
+        self.simarchive_filename = os.path.join('output','sim'+self.hash+'.rbsa')
+        self.status_filename = os.path.join('output','sim'+self.hash+'_status.json')
 
-        self.wall_start = wall_start
-        self.lastheart = wall_start
         self.heart_print_interval = 5.0
         self.snap_wall_interval = snap_wall_interval
 
+    def set_wall_start(self, wall_start):
+        self.wall_start = wall_start
+        self.lastheart = wall_start
 
     def set_model_hash(self):
         """Calculate a hash specifying the model. Need to use all the parameters of the model here."""
