@@ -1,3 +1,7 @@
+# Colin McNally 2019 <colin@colinmcnally.ca>
+# Script to test the Model class.
+# Set to run in laptop, not container
+# 
 import time
 import sys
 sys.path.append('/Users/colinm/vc/rebound')

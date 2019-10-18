@@ -113,21 +113,53 @@ class Model:
         with open(self.status_filename,'w') as json_file:
             json.dump(self.status, json_file)
         
+    def get_status(self):
+        """Try to read the status JSON file, fail and pass through FileNotFound"""
+        try:
+            with open(self.status_filename,'r') as json_file:
+                self.status = json.load(json_file)
+                print('loaded status')
+        except FileNotFoundError:
+            print('No old status file was found at: {}'.format(self.status_filename))
+            raise
   
     def init_rebound(self):
         """Initialize the rebound simulation and rebx object for this model """
         #in future, this will take an argument specifying to try to reload from disc
         #self.get_model_status() will be called when restarts are enabled
        
-        self.sim = rebound.Simulation()
-        self.sim.integrator = self.integrator
-        self.sim.collision = "line"
-        self.sim.heartbeat = self.heartbeat 
 
-        self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.snap_wall_interval, deletefile=True)
-        # status should be running or collided
-        self.status = {'status':'running'}
-        self.overwrite_status()
+        try:
+          self.get_status()
+          self.sim = rebound.Simulation(self.simarchive_filename) 
+          self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.snap_wall_interval, deletefile=False)
+        except FileNotFoundError:
+          self.sim = rebound.Simulation()
+          self.sim.integrator = self.integrator
+          self.sim.collision = "line"
+          self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.snap_wall_interval, deletefile=True)
+          # status should be running or collided
+          self.status = {'status':'running'}
+          self.overwrite_status()
+
+          # here we do the initialization for a chain model, maybe make this a method so we can overload only it
+          self.sim.add(m=self.starmass, hash='star')
+
+          #init random number generator to get reproducible random phases
+          rng = random.Random(self.hash)
+          a = self.a0
+          for ip in range(1, self.nchain+2):
+              true_anomaly = rng.uniform(0, 2.0*np.pi)
+              print('adding a={:e}'.format(a))
+              pt = rebound.Particle(simulation=self.sim, primary=self.sim.particles[0],
+                                    m=self.pmass, a=a, f=true_anomaly)
+              pt.r = a*np.sqrt(pt.m/3.0)
+              self.sim.add(pt)
+              # the 0.05 is a spread. but maybe this could be a param
+              a *= (self.p_res / (self.p_res + self.q_res + 0.05))**(-2.0/3.0)
+         
+        #always reset function pointers
+        self.sim.heartbeat = self.heartbeat 
 
         self.rebx = reboundx.Extras(self.sim)
         mof = self.rebx.load_force("modify_orbits_resonance_relax")
@@ -143,21 +175,7 @@ class Model:
         self.rebx.add_force(mof)
         self.mof = mof
 
-        self.sim.add(m=self.starmass, hash='star')
-
-        #init random number generator to get reproducible random phases
-        rng = random.Random(self.hash)
-        a = self.a0
-        for ip in range(1, self.nchain+1):
-            true_anomaly = rng.uniform(0, 2.0*np.pi)
-            print('adding a={:e}'.format(a))
-            pt = rebound.Particle(simulation=self.sim, primary=self.sim.particles[0],
-                                  m=self.pmass, a=a, f=true_anomaly)
-            pt.r = a*np.sqrt(pt.m/3.0)
-            self.sim.add(pt)
-            # the 0.05 is a spread. but maybe this could be a param
-            a *= (self.p_res / (self.p_res + self.q_res + 0.05))**(-2.0/3.0)
-        
+       
 
     def heartbeat(self, sim):
        """Heartbeat callback from rebound integrate
