@@ -103,6 +103,16 @@ class Model:
         self.hash = hashlib.md5(repstr.encode(encoding='utf-8')).hexdigest()
 
 
+    def lock(self):
+        """ Set lock in status file """
+        self.status['lock'] = True
+        self.overwrite_status()
+
+    def unlock(self):
+        """ Unset lock in status file """
+        self.status['lock'] = False
+        self.overwrite_status()
+
     def overwrite_status(self):
         """Overwrite the status file, it's a JSON format dict"""
         self.status['sim.t'] = self.sim.t
@@ -126,37 +136,38 @@ class Model:
     def init_rebound(self):
         """Initialize the rebound simulation and rebx object for this model """
         #in future, this will take an argument specifying to try to reload from disc
-        #self.get_model_status() will be called when restarts are enabled
-       
 
         try:
-          self.get_status()
-          self.sim = rebound.Simulation(self.simarchive_filename) 
-          self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.snap_wall_interval, deletefile=False)
+            self.get_status()
+            #Here, it is possible that self.sim.t is > status['sim.t] is the last achive was done automatically,
+            # but that will nto cuase a problem in current usage. It might be better to move all checkpointing
+            # to the driver integrate loop where we can control everything, as there's no callback in REBOUND.
+            self.sim = rebound.Simulation(self.simarchive_filename) 
+            self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.snap_wall_interval, deletefile=False)
         except FileNotFoundError:
-          self.sim = rebound.Simulation()
-          self.sim.integrator = self.integrator
-          self.sim.collision = "line"
-          self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.snap_wall_interval, deletefile=True)
-          # status should be running or collided
-          self.status = {'status':'running'}
-          self.overwrite_status()
+            self.sim = rebound.Simulation()
+            self.sim.integrator = self.integrator
+            self.sim.collision = "line"
+            self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.snap_wall_interval, deletefile=True)
+            # status should be running or collided
+            self.status = {'status':'running'}
+            self.unlock() # calls overwrite_status, and allows locking by driver
 
-          # here we do the initialization for a chain model, maybe make this a method so we can overload only it
-          self.sim.add(m=self.starmass, hash='star')
+            # here we do the initialization for a chain model, maybe make this a method so we can overload only it
+            self.sim.add(m=self.starmass, hash='star')
 
-          #init random number generator to get reproducible random phases
-          rng = random.Random(self.hash)
-          a = self.a0
-          for ip in range(1, self.nchain+2):
-              true_anomaly = rng.uniform(0, 2.0*np.pi)
-              print('adding a={:e}'.format(a))
-              pt = rebound.Particle(simulation=self.sim, primary=self.sim.particles[0],
-                                    m=self.pmass, a=a, f=true_anomaly)
-              pt.r = a*np.sqrt(pt.m/3.0)
-              self.sim.add(pt)
-              # the 0.05 is a spread. but maybe this could be a param
-              a *= (self.p_res / (self.p_res + self.q_res + 0.05))**(-2.0/3.0)
+            #init random number generator to get reproducible random phases
+            rng = random.Random(self.hash)
+            a = self.a0
+            for ip in range(1, self.nchain+2):
+                true_anomaly = rng.uniform(0, 2.0*np.pi)
+                print('adding a={:e}'.format(a))
+                pt = rebound.Particle(simulation=self.sim, primary=self.sim.particles[0],
+                                      m=self.pmass, a=a, f=true_anomaly)
+                pt.r = a*np.sqrt(pt.m/3.0)
+                self.sim.add(pt)
+                # the 0.05 is a spread. but maybe this could be a param
+                a *= (self.p_res / (self.p_res + self.q_res + 0.05))**(-2.0/3.0)
          
         #always reset function pointers
         self.sim.heartbeat = self.heartbeat 
