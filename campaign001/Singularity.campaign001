@@ -2,7 +2,7 @@ Bootstrap:docker
 From:ubuntu:disco
 
 %environment
-    export PYTHONPATH=/opt/chains/chaincalc:/opt/chains/cbrx:/opt/rebound
+    export PYTHONPATH=/opt/chains:/opt/chains/crbx:/opt/rebound
     export REB_DIR=/opt/rebound
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/rebound
 
