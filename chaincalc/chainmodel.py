@@ -194,7 +194,7 @@ class Model:
        wall_now = time.time()
        if (wall_now - self.lastheart > self.heart_print_interval):
             self.lastheart = wall_now
-            print("time {} walltime {}".format(sim.contents.t, wall_now -self.wall_start), end='\r')
+            print("time {:e} walltime {:e}".format(sim.contents.t, wall_now -self.wall_start), end='\r')
 
 
     def mark_collision(self):

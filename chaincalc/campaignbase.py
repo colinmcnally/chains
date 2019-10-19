@@ -31,3 +31,6 @@ class CampaignBase:
    def get_model(self, index):
        return self._models[self._keys[index]]
 
+   def get_size(self):
+       return len(self._models)
+
