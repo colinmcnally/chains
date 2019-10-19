@@ -1,5 +1,5 @@
 # ingest the orbits*.h5 files to a single HDF5 file library/database
-# 
+#  Will work with only some files present 
 
 import numpy as np
 import sys
@@ -31,29 +31,32 @@ runsh5.attrs.create(b'headers', (b'nchain', b'p', b'realization'))
 
 for key in chainmodels.runs_ext2:
   print(key,' ',chainmodels.runs_ext2[key])
-  orb = h5py.File(chainmodels.filenames_ext2[key], 'r')
+  try:
+    orb = h5py.File(chainmodels.filenames_ext2[key], 'r')
 
-  nplanets = orb.attrs['nchain'][0]
-  ie     = orb.attrs['lastout'][0]
-  tcoll  = orb.attrs['tcollstop']
-  tstart = orb.attrs['tdep'][0] +orb.attrs['deltatdep'][0]
+    nplanets = orb.attrs['nchain'][0]
+    ie     = orb.attrs['lastout'][0]
+    tcoll  = orb.attrs['tcollstop']
+    tstart = orb.attrs['tdep'][0] +orb.attrs['deltatdep'][0]
 
-  dt = orb['t'][ie-1] / (ie-1)
-  mask = np.ones(orb['t'][:ie].shape, dtype=np.bool)
-  times = orb['t'][0:ie]
-  for i,t in enumerate(times[1:]):
-    if (t<times[i]):
-      mask[i+1] = False
+    dt = orb['t'][ie-1] / (ie-1)
+    mask = np.ones(orb['t'][:ie].shape, dtype=np.bool)
+    times = orb['t'][0:ie]
+    for i,t in enumerate(times[1:]):
+      if (t<times[i]):
+        mask[i+1] = False
 
-  obg = libf.create_group(key)
-  for att in orb.attrs.items():
-    obg.attrs.create(att[0], att[1]) 
+    obg = libf.create_group(key)
+    for att in orb.attrs.items():
+      obg.attrs.create(att[0], att[1]) 
 
-  for okey in orb.keys():
-    if len(orb[okey].shape) >1:
-      obg.create_dataset( okey, data = np.compress(mask, orb[okey][:,:ie], axis=1) )
-    else:
-      obg.create_dataset( okey, data = np.compress(mask, orb[okey][:ie], axis=0) )
+    for okey in orb.keys():
+      if len(orb[okey].shape) >1:
+        obg.create_dataset( okey, data = np.compress(mask, orb[okey][:,:ie], axis=1) )
+      else:
+        obg.create_dataset( okey, data = np.compress(mask, orb[okey][:ie], axis=0) )
 
-  orb.close()
+    orb.close()
+  except Exception as e:
+    print(e)
 libf.close()

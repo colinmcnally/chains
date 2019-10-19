@@ -3,9 +3,12 @@
 #$ -j y
 #$ -N cb2
 #$ -pe smp 1
-#$ -l h_vmem=1G
+#$ -l h_vmem=4G
 #$ -l h_rt=72:0:0
 #$ -t 1-40
+#$ -tc 5
+#$-m e
+#$-M c.mcnally@qmul.ac.uk
 
 #this setting would limit the number of concurrent jobs
 ##$ -tc 128

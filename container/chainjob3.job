@@ -3,9 +3,10 @@
 #$ -j y
 #$ -N cb3
 #$ -pe smp 1
-#$ -l h_vmem=1G
+#$ -l h_vmem=3G
 #$ -l h_rt=72:0:0
 #$ -t 1-200
+#$ -tc 10
 
 #this setting would limit the number of concurrent jobs
 ##$ -tc 128

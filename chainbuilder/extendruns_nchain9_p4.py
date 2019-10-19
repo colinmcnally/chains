@@ -24,5 +24,7 @@ for key in allmod:
   print(key,' ',allmod[key])
   orb = h5py.File(allfiles[key], 'r+')
 
-  orb.attrs['tmax'] += 1e9*chainmodels.tkepler
+  #orb.attrs['tmax'] += 1e9*chainmodels.tkepler
+  # this should work as the outputs arrys will just be allocated longer
+  orb.attrs['nout'] = int((orb.attrs['tmax']+orb.attrs['dtout'])/orb.attrs['dtout']) +2
   orb.close()
