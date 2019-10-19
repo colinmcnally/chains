@@ -18,6 +18,7 @@ import os.path
 import hashlib
 import time
 import random
+import copy
 import json
 import numpy as np
 import rebound
@@ -72,7 +73,7 @@ class Model:
             else:
                 setattr(self, parstr, parval)
         #probably keep the above setattr, and remove this, or do the opposite
-        self.params = params
+        self.params = copy.deepcopy(params) # need to do a deep copy as the dict is actually object refs
         self.G = 1.0
         self.starmass = 1.0
         self.integrator = "whfast" 
@@ -159,9 +160,9 @@ class Model:
             #init random number generator to get reproducible random phases
             rng = random.Random(self.hash)
             a = self.a0
-            for ip in range(1, self.nchain+2):
+            for ip in range(1, self.nchain+1):
                 true_anomaly = rng.uniform(0, 2.0*np.pi)
-                print('adding a={:e}'.format(a))
+                print('adding {} at a={:e}'.format(ip,a))
                 pt = rebound.Particle(simulation=self.sim, primary=self.sim.particles[0],
                                       m=self.pmass, a=a, f=true_anomaly)
                 pt.r = a*np.sqrt(pt.m/3.0)

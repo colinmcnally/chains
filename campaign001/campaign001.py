@@ -31,6 +31,7 @@ class Campaign001(chaincalc.CampaignBase):
       nchains = range(5,11) 
       p_ress = range(3,7)
       p_resind = self.new_index()
+      counter = 0
       for p_res in p_ress:
           p['p_res'] = p_res
           nchainind = self.new_index()
@@ -40,9 +41,11 @@ class Campaign001(chaincalc.CampaignBase):
               seqind = self.new_index()
               for i in range(0,nmodels):
                   p['seq'] = i
+                  print('{} p_res {}, nchain {} seq {}'.format(counter, p['p_res'], p['nchain'], p['seq']))
                   c = chaincalc.Model(p)
                   self.add_model(c)
                   seqind[i] = c.hash
+                  counter += 1
               nchainind[nchain] = {'seq':seqind}
           p_resind[p_res] = {'nchain':nchainind}
       self.indexes['p_res'] = p_resind
