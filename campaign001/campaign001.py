@@ -8,7 +8,7 @@ import chaincalc
 # the test driver uses these
 keplertime = 2.0*np.pi*0.1**1.5
 targettime = 1e9*keplertime
-wall_check_interval = 30*60*60
+wall_check_interval = 15*60
 
 class Campaign001(chaincalc.CampaignBase):
   def __init__(self):
