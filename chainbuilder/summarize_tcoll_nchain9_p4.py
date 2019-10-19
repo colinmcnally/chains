@@ -53,20 +53,20 @@ for model in models:
   print('model',model)
   selection = lifetable[np.nonzero(
                  np.logical_and(
-                 np.logical_and(lifetable[:]['nchain']==model[0], lifetable[:]['p']==model[1]),
-                 lifetable[:]['tlife']>0.0
+                 np.logical_and(lifetable[:]['nchain'] == model[0], lifetable[:]['p'] == model[1]),
+                 lifetable[:]['tlife'] > 0.0
                  )
                  )]
   tlifes[model]  = selection[:]['tlife']
   nfinished[model] = len(selection)
   nlong[model]= np.count_nonzero(
                  np.logical_and(
-                 np.logical_and(lifetable[:]['nchain']==model[0], lifetable[:]['p']==model[1]),
-                 lifetable[:]['lasttime']>0.9999e8) )
+                 np.logical_and(lifetable[:]['nchain'] == model[0], lifetable[:]['p'] == model[1]),
+                 lifetable[:]['lasttime'] > 0.9999e9) )
   nunfinished[model] = np.count_nonzero(
                  np.logical_and(
                  np.logical_and(lifetable[:]['nchain'] == model[0], lifetable[:]['p'] == model[1]),
-                 np.logical_and(lifetable[:]['lasttime'] < 0.9999e8, lifetable[:]['tlife'] < 0.0)
+                 np.logical_and(lifetable[:]['lasttime'] < 0.9999e9, lifetable[:]['tlife'] < 0.0)
                  ) )
 
 
@@ -123,11 +123,11 @@ for model in models:
   norm = scipy.stats.norm(loc=normfit[0], scale= normfit[1])
 
   plt.figure()
-  plt.plot(np.exp(trange), np.exp(kdesk.score_samples( trange.reshape(-1,1) ))*(1.0/np.exp(trange)), 
+  plt.loglog(np.exp(trange), np.exp(kdesk.score_samples( trange.reshape(-1,1) ))*(1.0/np.exp(trange)), 
            label='sklearn+gaussian')
-  plt.plot(np.exp(trange), norm.pdf( trange )*(1.0/np.exp(trange)), 
-           label='MLE lognorm -tail')
-  plt.plot(np.exp(tlifes[model]), 0.0*tlifes[model], '+')
+  #plt.plot(np.exp(trange), norm.pdf( trange )*(1.0/np.exp(trange)), 
+  #         label='MLE lognorm -tail')
+  #plt.plot(np.exp(tlifes[model]), 0.0*tlifes[model], '+')
   plt.axvline(x = np.exp(np.median(tlifes[model])), dashes=(5,5), color='grey')
   plt.ylim(bottom=-1e-8)
   plt.xlim(left=0)
