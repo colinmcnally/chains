@@ -153,7 +153,11 @@ class Model:
             #self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.params['snap_wall_interval'], deletefile=False)
         except FileNotFoundError:
             self.sim = rebound.Simulation()
-            self.sim.integrator = self.params['integrator']
+            if self.params['integrator']=='WHFASTUNSAFE11':
+                self.sim.ri_whfast.safe_mode = 0
+                self.sim.ri_whfast.corrector = 11
+            else:    
+                self.sim.integrator = self.params['integrator']
             self.sim.collision = self.params['collision']
             #only do this from the driver side with manual trigger, as we have to hit the walltime limit anyways
             #self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.params['snap_wall_interval'], deletefile=True)

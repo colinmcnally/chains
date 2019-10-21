@@ -34,7 +34,7 @@ class myruns(chaincalc.CampaignBase):
          'collision':'line',
          'G':1.0,
          'starmass':1.0,
-         'integrator':'WHFAST',
+         'integrator':'WHFASTUNSAFE11',
          'integrator_dt':1e-2*2*np.pi*0.1**1.5,
          'snap_wall_interval':15,
          'incscatter':np.pi/100.0,
