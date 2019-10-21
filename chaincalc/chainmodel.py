@@ -80,7 +80,6 @@ class Model:
                 raise
         #probably keep the above setattr, and remove this, or do the opposite
         self.params = copy.deepcopy(params) # need to do a deep copy as the dict is actually object refs
-        print(self.params)
         self.set_model_hash()
         self.simarchive_filename = os.path.join('output','sim'+self.hash+'.rbsa')
         self.status_filename = os.path.join('output','sim'+self.hash+'_status.json')
