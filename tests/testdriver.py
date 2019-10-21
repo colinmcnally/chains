@@ -57,7 +57,7 @@ if tm.status['status']=='running':
         tm.unlock()
         print('')
 else:
-    print('Not integrating, the status is already {}'.tm.status['status'])
+    print('Not integrating, the status is already {}',tm.status['status'])
 
 
 tm2 = col.get_model(runi)

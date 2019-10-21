@@ -31,7 +31,15 @@ class myruns(chaincalc.CampaignBase):
          'nchain':4,
          'q_res':1,
          'p_res':4,
-         'seq':0 }
+         'seq':0,
+         'collision':'line',
+         'G':1.0,
+         'starmass':1.0,
+         'integrator':'WHFAST',
+         'integrator_dt':1e-2*2*np.pi*0.1**1.5,
+         'snap_wall_interval':60*60,
+         'incscatter':np.pi/100.0,
+         'aspread':0.05  }
       #make a bunch of realizations of the same model, with randomized phases
       nmodels = 10
       nchains = range(5,11) 
