@@ -14,6 +14,7 @@
 #  A given set of models (i.e. their hashes) will constitute a simulation campaign, and the driver will be a
 #  class which figure out how to get all the models to be completed
 import sys
+import os
 import os.path
 import hashlib
 import time
@@ -148,12 +149,17 @@ class Model:
             # but that will nto cuase a problem in current usage. It might be better to move all checkpointing
             # to the driver integrate loop where we can control everything, as there's no callback in REBOUND.
             self.sim = rebound.Simulation(self.simarchive_filename) 
-            self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.params['snap_wall_interval'], deletefile=False)
+            #only do this from the driver side with manual trigger, as we have to hit the walltime limit anyways
+            #self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.params['snap_wall_interval'], deletefile=False)
         except FileNotFoundError:
             self.sim = rebound.Simulation()
             self.sim.integrator = self.params['integrator']
             self.sim.collision = self.params['collision']
-            self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.params['snap_wall_interval'], deletefile=True)
+            #only do this from the driver side with manual trigger, as we have to hit the walltime limit anyways
+            #self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.params['snap_wall_interval'], deletefile=True)
+            # if not calling auto simarchive, need to at least clear out any old file
+            if os.path.isfile(self.simarchive_filename):
+                os.remove(self.simarchive_filename)
             # status should be running or collided
             self.status = {'status':'running'}
             self.unlock() # calls overwrite_status, and allows locking by driver

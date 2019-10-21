@@ -12,8 +12,7 @@ import chaincalc
 
 # the test driver uses these
 keplertime = 2.0*np.pi*0.1**1.5
-targettime = 40000*keplertime
-wall_check_interval = 15
+targettime = 80000*keplertime
 
 class myruns(chaincalc.CampaignBase):
   def __init__(self):
@@ -37,7 +36,7 @@ class myruns(chaincalc.CampaignBase):
          'starmass':1.0,
          'integrator':'WHFAST',
          'integrator_dt':1e-2*2*np.pi*0.1**1.5,
-         'snap_wall_interval':60*60,
+         'snap_wall_interval':15,
          'incscatter':np.pi/100.0,
          'aspread':0.05  }
       #make a bunch of realizations of the same model, with randomized phases
