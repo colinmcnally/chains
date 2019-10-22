@@ -11,9 +11,10 @@
 #  - the simulation integrator method, including checkpoint, releading, and status I/O to disc
 #  - a method to check the simulation status from disc
 #
-#  A given set of modelsi (i.e. their hashes) will constitute a simulation campaign, and the driver will be a
+#  A given set of models (i.e. their hashes) will constitute a simulation campaign, and the driver will be a
 #  class which figure out how to get all the models to be completed
 import sys
+import os
 import os.path
 import hashlib
 import time
@@ -25,7 +26,7 @@ import rebound
 import reboundx
 
 class Model:
-    def __init__(self, params, snap_wall_interval=60*60):
+    def __init__(self, params):
         """ Params is a dict of parameters, easier to reuse when initializing in a loop
             aspectratio0
             sigma0
@@ -41,12 +42,13 @@ class Model:
             p_res
             a0
             seq
-
-            some other values set as object attributes, but not intended to be modified
             G
             starmass
             integrator
             integrator_dt
+            snap_wall_interval
+            incscatter
+            aspread
      """
         paramlist = ['aspectratio0',
                      'sigma0',
@@ -62,29 +64,28 @@ class Model:
                      'p_res',
                      'q_res',
                      'a0',
-                     'seq']
-                     
+                     'seq',
+                     'G',
+                     'collision',
+                     'starmass',
+                     'integrator',
+                     'integrator_dt',
+                     'snap_wall_interval',
+                     'incscatter',
+                     'aspread']
         for parstr in paramlist:
             try:
                 parval = params[parstr]
             except KeyError as keyerr:
                 print('chainmodel __init__ did not find param {}'.format(keyerr.args[0]))
                 raise
-            else:
-                setattr(self, parstr, parval)
         #probably keep the above setattr, and remove this, or do the opposite
         self.params = copy.deepcopy(params) # need to do a deep copy as the dict is actually object refs
-        self.G = 1.0
-        self.starmass = 1.0
-        self.integrator = "whfast" 
-        # 1e-2 times the inner edge orbital time
-        self.integrator_dt = 1e-2*2.0*np.pi* self.redge**1.5
         self.set_model_hash()
         self.simarchive_filename = os.path.join('output','sim'+self.hash+'.rbsa')
         self.status_filename = os.path.join('output','sim'+self.hash+'_status.json')
 
         self.heart_print_interval = 5.0
-        self.snap_wall_interval = snap_wall_interval
 
     def set_wall_start(self, wall_start):
         self.wall_start = wall_start
@@ -94,15 +95,19 @@ class Model:
         """Calculate a hash specifying the model. Need to use all the parameters of the model here."""
         params = self.params
         repstr = ''
+        # got to be careful to catch all cases here
         for pk in sorted(params.keys()):
-            repstr += '{:e}'.format(params[pk])
-        repstr += '{:e}'.format(self.G)
-        repstr += '{:e}'.format(self.starmass)
-        repstr += '{}'.format(self.integrator)
-        repstr += '{:e}'.format(self.integrator_dt)
+            val = params[pk]
+            if isinstance(val, str):
+                repstr += '{}'.format(val)
+            elif isinstance(val, int):
+                repstr += '{:d}'.format(val)
+            elif isinstance(val, float):
+                repstr += '{:e}'.format(val)
+            else:
+                repstr += '{}'.format(val)
         #calculate the MD5 hash of this string
         self.hash = hashlib.md5(repstr.encode(encoding='utf-8')).hexdigest()
-
 
     def lock(self):
         """ Set lock in status file """
@@ -144,46 +149,57 @@ class Model:
             # but that will nto cuase a problem in current usage. It might be better to move all checkpointing
             # to the driver integrate loop where we can control everything, as there's no callback in REBOUND.
             self.sim = rebound.Simulation(self.simarchive_filename) 
-            self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.snap_wall_interval, deletefile=False)
+            #only do this from the driver side with manual trigger, as we have to hit the walltime limit anyways
+            #self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.params['snap_wall_interval'], deletefile=False)
         except FileNotFoundError:
             self.sim = rebound.Simulation()
-            self.sim.integrator = self.integrator
-            self.sim.collision = "line"
-            self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.snap_wall_interval, deletefile=True)
+            if self.params['integrator']=='WHFASTUNSAFE11':
+                self.sim.ri_whfast.safe_mode = 0
+                self.sim.ri_whfast.corrector = 11
+            else:    
+                self.sim.integrator = self.params['integrator']
+            self.sim.collision = self.params['collision']
+            #only do this from the driver side with manual trigger, as we have to hit the walltime limit anyways
+            #self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.params['snap_wall_interval'], deletefile=True)
+            # if not calling auto simarchive, need to at least clear out any old file
+            if os.path.isfile(self.simarchive_filename):
+                os.remove(self.simarchive_filename)
             # status should be running or collided
             self.status = {'status':'running'}
             self.unlock() # calls overwrite_status, and allows locking by driver
 
             # here we do the initialization for a chain model, maybe make this a method so we can overload only it
-            self.sim.add(m=self.starmass, hash='star')
+            self.sim.add(m=self.params['starmass'], hash='star')
 
             #init random number generator to get reproducible random phases
             rng = random.Random(self.hash)
-            a = self.a0
-            for ip in range(1, self.nchain+1):
-                true_anomaly = rng.uniform(0, 2.0*np.pi)
+            a = self.params['a0']
+            for ip in range(1, self.params['nchain']+1):
+                true_anomaly = rng.uniform(0.0, 2.0*np.pi)
+                inclination = rng.normalvariate(0.0, self.params['incscatter'])
                 print('adding {} at a={:e}'.format(ip,a))
                 pt = rebound.Particle(simulation=self.sim, primary=self.sim.particles[0],
-                                      m=self.pmass, a=a, f=true_anomaly)
+                                      m=self.params['pmass'], a=a, inc=inclination, f=true_anomaly)
                 pt.r = a*np.sqrt(pt.m/3.0)
                 self.sim.add(pt)
                 # the 0.05 is a spread. but maybe this could be a param
-                a *= (self.p_res / (self.p_res + self.q_res + 0.05))**(-2.0/3.0)
+                a *= (self.params['p_res'] / (self.params['p_res'] + self.params['q_res'] + self.params['aspread']))**(-2.0/3.0)
+            self.sim.move_to_com()
          
         #always reset function pointers
         self.sim.heartbeat = self.heartbeat 
 
         self.rebx = reboundx.Extras(self.sim)
         mof = self.rebx.load_force("modify_orbits_resonance_relax")
-        mof.params['res_aspectratio0'] = self.aspectratio0
-        mof.params['res_sigma0'] = self.sigma0
-        mof.params['res_redge'] = self.redge
-        mof.params['res_deltaredge'] = self.deltaredge 
-        mof.params['res_alpha'] = self.alpha
-        mof.params['res_flaringindex'] = self.flaringindex
-        mof.params['res_ffudge'] = self.ffudge
-        mof.params['res_tdep'] = self.tdep
-        mof.params['res_deltatdep'] = self.deltatdep
+        mof.params['res_aspectratio0'] = self.params['aspectratio0']
+        mof.params['res_sigma0'] = self.params['sigma0']
+        mof.params['res_redge'] = self.params['redge']
+        mof.params['res_deltaredge'] = self.params['deltaredge']
+        mof.params['res_alpha'] = self.params['alpha']
+        mof.params['res_flaringindex'] = self.params['flaringindex']
+        mof.params['res_ffudge'] = self.params['ffudge']
+        mof.params['res_tdep'] = self.params['tdep']
+        mof.params['res_deltatdep'] = self.params['deltatdep']
         self.rebx.add_force(mof)
         self.mof = mof
 

@@ -43,7 +43,7 @@ if tm.status['status']=='running':
             while (tm.sim.t < targettime) and ((time.time() - wall_start) <= wall_limit) and tm.status['status']=='running':
                 nextcheck = min(tm.sim.t+100*keplertime, targettime)
                 tm.sim.integrate(nextcheck)
-                if (time.time() - lastsnap) > wall_check_interval:
+                if (time.time() - lastsnap) > tm.params['snap_wall_interval']:
                     print('\nmanual snapshot wall elapsed:', time.time()-wall_start)
                     tm.manual_snapshot()
                     lastsnap = time.time()
@@ -57,7 +57,7 @@ if tm.status['status']=='running':
         tm.unlock()
         print('')
 else:
-    print('Not integrating, the status is already {}'.tm.status['status'])
+    print('Not integrating, the status is already {}',tm.status['status'])
 
 
 tm2 = col.get_model(runi)

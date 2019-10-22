@@ -5,7 +5,6 @@ import numpy as np
 import sys
 import chaincalc
 
-# the test driver uses these
 keplertime = 2.0*np.pi*0.1**1.5
 targettime = 1e9*keplertime
 wall_check_interval = 15*60
@@ -20,13 +19,21 @@ class Campaign001(chaincalc.CampaignBase):
          'alpha':1.0,
          'flaringindex':2.0/7.0,
          'ffudge':1.0/100.0,
-         'tdep':4e5*keplertime,
-         'deltatdep':4e5*keplertime,
+         'tdep':5e6*keplertime,
+         'deltatdep':5e5*keplertime,
          'pmass':1e-5,
          'nchain':4,
          'q_res':1,
          'p_res':4,
-         'seq':0 }
+         'seq':0,
+         'collision':'line',
+         'G':1.0,
+         'starmass':1.0,
+         'integrator':'WHFAST',
+         'integrator_dt':1e-2*keplertime,
+         'snap_wall_interval':15*60,
+         'incscatter':np.pi/100.0,
+         'aspread':0.05 }
       nmodels = 10
       nchains = range(5,11) 
       p_ress = range(3,7)

@@ -9,6 +9,7 @@ sys.path.append('../crbx')
 sys.path.append('../')
 import chaincalc
 import rebound
+import numpy as np
 
 #this is sort of a dummy driver
 
@@ -28,7 +29,15 @@ p = {'aspectratio0':0.035,
      'nchain':4,
      'q_res':3,
      'p_res':40,
-     'seq':0 }
+     'seq':0,
+     'collision':'line',
+     'G':1.0,
+     'starmass':1.0,
+     'integrator':'WHFAST',
+     'integrator_dt':1e-2*2*np.pi*0.1**1.5,
+     'snap_wall_interval':60*60,
+     'incscatter':np.pi/100.0,
+     'aspread':0.05 }
 
 def runtest(p):
     c = chaincalc.Model(p)
