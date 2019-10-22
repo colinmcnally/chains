@@ -26,70 +26,61 @@ import rebound
 import reboundx
 
 class Model:
-    def __init__(self, params):
-        """ Params is a dict of parameters, easier to reuse when initializing in a loop
-            aspectratio0
-            sigma0
-            redge
-            deltaredge
-            alpha
-            flaringindex
-            ffudge
-            tdep
-            deltatdep
-            pmass
-            nchain
-            p_res
-            a0
-            seq
-            G
-            starmass
-            integrator
-            integrator_dt
-            snap_wall_interval
-            incscatter
-            aspread
-     """
-        paramlist = ['aspectratio0',
-                     'sigma0',
-                     'redge',
-                     'deltaredge',
-                     'alpha',
-                     'flaringindex',
-                     'ffudge',
-                     'tdep',
-                     'deltatdep',
-                     'pmass',
-                     'nchain',
-                     'p_res',
-                     'q_res',
-                     'a0',
-                     'seq',
-                     'G',
-                     'collision',
-                     'starmass',
-                     'integrator',
-                     'integrator_dt',
-                     'snap_wall_interval',
-                     'incscatter',
-                     'aspread']
+    def validate_paramlist(self, params):
+        """Check the param list, designed to be overloaded."""
+        paramlist =  ['aspectratio0',
+                      'sigma0',
+                      'redge',
+                      'deltaredge',
+                      'alpha',
+                      'flaringindex',
+                      'ffudge',
+                      'tdep',
+                      'deltatdep',
+                      'pmass',
+                      'nchain',
+                      'p_res',
+                      'q_res',
+                      'a0',
+                      'seq',
+                      'G',
+                      'collision',
+                      'starmass',
+                      'integrator',
+                      'integrator_dt',
+                      'snap_wall_interval',
+                      'incscatter',
+                      'aspread']
         for parstr in paramlist:
             try:
                 parval = params[parstr]
             except KeyError as keyerr:
-                print('chainmodel __init__ did not find param {}'.format(keyerr.args[0]))
+                print('chainmodel did not find param {}'.format(keyerr.args[0]))
                 raise
+ 
+
+    def __init__(self, params):
+        """Params is a dict of parameters, easier to reuse when initializing in a loop.
+           Init broken up into methods to make overloading easier."""
+        self.validate_paramlist(params)
+        self.other_init(params)
+
+
+    def other_init(self, params):
+        """Initialization to be done after the parameters are checked."""
         #probably keep the above setattr, and remove this, or do the opposite
         self.params = copy.deepcopy(params) # need to do a deep copy as the dict is actually object refs
         self.set_model_hash()
         self.simarchive_filename = os.path.join('output','sim'+self.hash+'.rbsa')
         self.status_filename = os.path.join('output','sim'+self.hash+'_status.json')
-
         self.heart_print_interval = 5.0
 
+
     def set_wall_start(self, wall_start):
+        """Store the wallclock start time of the driver process, not the Rebound simulation """
         self.wall_start = wall_start
         self.lastheart = wall_start
+
 
     def set_model_hash(self):
         """Calculate a hash specifying the model. Need to use all the parameters of the model here."""
@@ -109,15 +100,18 @@ class Model:
         #calculate the MD5 hash of this string
         self.hash = hashlib.md5(repstr.encode(encoding='utf-8')).hexdigest()
 
+
     def lock(self):
         """ Set lock in status file """
         self.status['lock'] = True
         self.overwrite_status()
 
+
     def unlock(self):
         """ Unset lock in status file """
         self.status['lock'] = False
         self.overwrite_status()
+
 
     def overwrite_status(self):
         """Overwrite the status file, it's a JSON format dict"""
@@ -129,6 +123,7 @@ class Model:
         with open(self.status_filename,'w') as json_file:
             json.dump(self.status, json_file)
         
+
     def get_status(self):
         """Try to read the status JSON file, fail and pass through FileNotFound"""
         try:
@@ -139,6 +134,7 @@ class Model:
             print('No old status file was found at: {}'.format(self.status_filename))
             raise
   
+
     def init_rebound(self):
         """Initialize the rebound simulation and rebx object for this model """
         #in future, this will take an argument specifying to try to reload from disc
@@ -189,6 +185,9 @@ class Model:
         #always reset function pointers
         self.sim.heartbeat = self.heartbeat 
 
+
+    def add_force(self):
+        """Add reboundx forces. This is a method so it can be overloaded easily"""
         self.rebx = reboundx.Extras(self.sim)
         mof = self.rebx.load_force("modify_orbits_resonance_relax")
         mof.params['res_aspectratio0'] = self.params['aspectratio0']
@@ -203,13 +202,12 @@ class Model:
         self.rebx.add_force(mof)
         self.mof = mof
 
-       
 
     def heartbeat(self, sim):
-       """Heartbeat callback from rebound integrate
-          sim is a pointer (see ctypes) not the actual object """
-       wall_now = time.time()
-       if (wall_now - self.lastheart > self.heart_print_interval):
+        """Heartbeat callback from rebound integrate
+           sim is a pointer (see ctypes) not the actual object """
+        wall_now = time.time()
+        if (wall_now - self.lastheart > self.heart_print_interval):
             self.lastheart = wall_now
             print("time {:e} walltime {:e}".format(sim.contents.t, wall_now -self.wall_start), end='\r')
 
@@ -233,3 +231,53 @@ class Model:
         """Call to save a manual snapshot, for example when driver hits walltime limit"""
         self.sim.simulationarchive_snapshot(self.simarchive_filename)
         self.overwrite_status()
+
+
+class TauDampModel(Model):
+
+
+    def validate_paramlist(self, params):
+        paramlist =  [
+                      'tau_a',
+                      'tau_e',
+                      'tau_inc',
+                      'redge',
+                      'deltaredge',
+                      'tdep',
+                      'deltatdep',
+                      'pmass',
+                      'nchain',
+                      'p_res',
+                      'q_res',
+                      'a0',
+                      'seq',
+                      'G',
+                      'collision',
+                      'starmass',
+                      'integrator',
+                      'integrator_dt',
+                      'snap_wall_interval',
+                      'incscatter',
+                      'aspread']
+        for parstr in paramlist:
+            try:
+                parval = params[parstr]
+            except KeyError as keyerr:
+                print('chainmodel TauDampModel did not find param {}'.format(keyerr.args[0]))
+                raise
+
+
+    def add_force(self):
+        """Add tau damping force"""
+        self.rebx = reboundx.Extras(self.sim)
+        mof = self.rebx.load_force("modify_orbits_forces_edge")
+        mof.params['res_redge'] = self.params['redge']
+        mof.params['res_deltaredge'] = self.params['deltaredge']
+        mof.params['res_tdep'] = self.params['tdep']
+        mof.params['res_deltatdep'] = self.params['deltatdep']
+        self.rebx.add_force(mof)
+        self.mof = mof
+        for pt in self.sim.particles[1:]:
+            pt.params['tau_a'] = self.params['tau_a']
+            pt.params['tau_e'] = self.params['tau_e']
+            pt.params['tau_inc'] = self.params['tau_inc']
