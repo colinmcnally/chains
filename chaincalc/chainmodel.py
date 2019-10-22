@@ -150,6 +150,7 @@ class Model:
         except FileNotFoundError:
             self.sim = rebound.Simulation()
             if self.params['integrator']=='WHFASTUNSAFE11':
+                self.sim.integrator = 'whfast'
                 self.sim.ri_whfast.safe_mode = 0
                 self.sim.ri_whfast.corrector = 11
             else:    
@@ -181,6 +182,10 @@ class Model:
                 # the 0.05 is a spread. but maybe this could be a param
                 a *= (self.params['p_res'] / (self.params['p_res'] + self.params['q_res'] + self.params['aspread']))**(-2.0/3.0)
             self.sim.move_to_com()
+            self.manual_snapshot()
+
+        #the reboundx forces are initialized following params, and in a method so they can be overidden
+        self.add_force()
          
         #always reset function pointers
         self.sim.heartbeat = self.heartbeat 
@@ -188,8 +193,9 @@ class Model:
 
     def add_force(self):
         """Add reboundx forces. This is a method so it can be overloaded easily"""
+        print(' adding modify_orbits_resonance_relax')
         self.rebx = reboundx.Extras(self.sim)
-        mof = self.rebx.load_force("modify_orbits_resonance_relax")
+        mof = self.rebx.load_force('modify_orbits_resonance_relax')
         mof.params['res_aspectratio0'] = self.params['aspectratio0']
         mof.params['res_sigma0'] = self.params['sigma0']
         mof.params['res_redge'] = self.params['redge']
@@ -234,9 +240,10 @@ class Model:
 
 
 class TauDampModel(Model):
-
+    """A model using constanat timescale damping, with an inner edge to the disc """
 
     def validate_paramlist(self, params):
+        """Checks required params are in the model parameter dict"""
         paramlist =  [
                       'tau_a',
                       'tau_e',
@@ -269,8 +276,9 @@ class TauDampModel(Model):
 
     def add_force(self):
         """Add tau damping force"""
+        print('adding modify_orbits_forces_edge')
         self.rebx = reboundx.Extras(self.sim)
-        mof = self.rebx.load_force("modify_orbits_forces_edge")
+        mof = self.rebx.load_force('modify_orbits_forces_edge')
         mof.params['res_redge'] = self.params['redge']
         mof.params['res_deltaredge'] = self.params['deltaredge']
         mof.params['res_tdep'] = self.params['tdep']
