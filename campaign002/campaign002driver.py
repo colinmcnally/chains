@@ -27,7 +27,6 @@ print('Will try to run model at index {} of campaign002'.format(runi))
 
 
 tm = col.get_model(runi)
-tm.params['snap_wall_interval'] = 15
 print('Wallclock checkpoint interval is {} seconds'.format(tm.params['snap_wall_interval']))
 
 print('hash is ',tm.hash)
