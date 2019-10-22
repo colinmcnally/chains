@@ -1,0 +1,71 @@
+Bootstrap:docker
+From:ubuntu:disco
+
+%environment
+    export PYTHONPATH=/opt/chains:/opt/chains/crbx:/opt/rebound
+    export REB_DIR=/opt/rebound
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/rebound
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq
+    apt-get install wget software-properties-common apt-transport-https -y
+    apt-get install dvipng -y
+    apt-get install less -y
+    apt-get install ipython3 -y
+    apt-get install ipython3-qtconsole -y
+    apt-get install python3-matplotlib -y
+    apt-get install python3-h5py -y
+    apt-get install python3-numpy -y
+    apt-get install python3-mpi4py -y
+    apt-get install python3-scipy -y
+    apt-get install python3-sklearn -y
+    apt-get install python3-sklearn-pandas -y
+    apt-get install python3-pandas -y
+    apt-get install python3-statsmodels -y
+    apt-get install python3-seaborn -y
+    apt-get install python3-pip -y
+    apt-get install texlive-latex-base -y
+    apt-get install texlive-latex-extra -y
+    apt-get install htop -y
+    apt-get install git -y
+    apt-get install vim -y
+    apt-get install libhdf5-dev -y 
+    apt-get install r-recommended -y
+    apt-get install r-cran-survival -y
+
+
+    # Install required R packages
+    # This takes a long time. How about not doing it.
+    #R --slave -e 'install.packages(c("flexsurv"), repos="https://cloud.r-project.org/")'
+    #R --slave -e 'install.packages(c("ggplot2"), repos="https://cloud.r-project.org/")'
+
+    # build the font cache
+    python3 -c "import matplotlib.pyplot"
+
+    #build librebound
+    cd opt
+    git clone https://github.com/hannorein/rebound.git
+    cd rebound
+    # reset the working copy to a fixed knopwn revision.
+    # this is somethign we should be able to do for each project/study
+    # for reproducibility
+    git reset --hard 02b3c8b492ff19017f8af4687a1cc25003e7d63c
+    make
+    ln -s librebound.so librebound.cpython-37m-x86_64-linux-gnu.so  
+    export REB_DIR=/opt/rebound
+    cd /
+
+    #build the chainbuilder
+    cd opt
+    git clone https://github.com/colinmcnally/chains.git
+    cd chains
+    cd crbx
+    make
+    ln -s libreboundx.so libreboundx.cpython-37m-x86_64-linux-gnu.so
+    cd /
+    
+
+%runscript
+
+    exec echo "runscript is empty "
