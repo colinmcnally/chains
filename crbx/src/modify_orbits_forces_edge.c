@@ -1,10 +1,10 @@
 /**
- * @file    modify_orbits_forces.c
- * @brief   Update orbital elements with prescribed timescales using forces.
- * @author  Colin McNally <colin@colinmcnally.ca>
+ * @file    modify_orbits_forces_edge.c
+ * @brief   Update orbital elements with prescribed timescales using forces, inclide innder edge.
+ * @author  Colin McNally <colin@colinmcnally.ca>, Dan Tamayo <tamayo.daniel@gmail.com>
  * 
  * @section     LICENSE
- * Copyright (c) 2019 Colin McNally
+ * Copyright (c) 2015 Dan Tamayo, Hanno Rein
  *
  * This file is part of reboundx.
  *
@@ -28,14 +28,17 @@
  * $Orbit Modifications$       // Effect category (must be the first non-blank line after dollar signs and between dollar signs to be detected by script).
  *
  * ======================= ===============================================
- * Authors                 C.P. McNally
+ * Authors                 C. McNally from original of D. Tamayo, H. Rein
  * Implementation Paper    *In progress*
- * Based on                `Matsumoto et al. 2012 2012Icar..221..624M`_.
+ * Based on                `Papaloizou & Larwood 2000 <http://labs.adsabs.harvard.edu/adsabs/abs/2000MNRAS.315..823P/>`_.
  * C Example               
  * Python Example          
  * ======================= ===============================================
  * 
  * This applies physical forces that orbit-average to give exponential growth/decay of the semimajor axis, eccentricity and inclination.
+ * The eccentricity damping keeps the angular momentum constant (corresponding to `p=1` in modify_orbits_direct), which means that eccentricity damping will induce some semimajor axis evolution.
+ * Additionally, eccentricity/inclination damping will induce pericenter/nodal precession.
+ * Both these effects are physical, and the method is more robust for strongly perturbed systems.
  * 
  * **Effect Parameters**
  *
@@ -56,11 +59,9 @@
  * ============================ =========== ==================================================================
  * Field (C type)               Required    Description
  * ============================ =========== ==================================================================
- * res_aspectratio0 (double)    Yes         Disc aspect ratio at r=1
- * res_flaringindex (double)    Yes         Disc flaring index
- * res_ffudge (double)          Yes         Fudge factor controlling ratio of semimajor axis to eccentricity damping         
- * res_sigma0 (double)          Yes         Disc surface density at r=1         
- * res_alpha (double)           Yes         Disc negative surface density slope Sigma = Sigma0 r^-alpha   
+ * tau_a (double)               No          Semimajor axis exponential growth/damping timescale
+ * tau_e (double)               No          Eccentricity exponential growth/damping timescale
+ * tau_inc (double)             No          Inclination axis exponential growth/damping timescale
  * res_redge (double)           Yes         Disc inner edge radius         
  * res_deltaredge (double)      Yes         Disc inner edge tanh transition width      
  * res_tdep (double)            Yes         Time at which the disc starts depleting
@@ -76,23 +77,18 @@
 #include "reboundx.h"
 #include "rebxtools.h"
 
-static struct reb_vec3d rebx_calculate_src_modify_orbits_resonance_relax(struct reb_simulation* const sim, struct rebx_force* const force, struct reb_particle* p, struct reb_particle* source){
-    const double G = sim->G;
-    double aspectratio0 = INFINITY;
-    double flaringindex = INFINITY;
-    double ffudge       = INFINITY;
-    double sigma0       = INFINITY;
-    double alpha        = INFINITY;
+static struct reb_vec3d rebx_calculate_modify_orbits_forces(struct reb_simulation* const sim, struct rebx_force* const force, struct reb_particle* p, struct reb_particle* source){
+    double tau_a        = INFINITY;
+    double tau_e        = INFINITY;
+    double tau_inc      = INFINITY;
     double redge        = INFINITY;
     double deltaredge   = INFINITY;
     double tdep         = INFINITY;
     double deltatdep    = INFINITY;
- 
-    const double* const aspectratio0_ptr = rebx_get_param(sim->extras, force->ap, "res_aspectratio0");
-    const double* const flaringindex_ptr = rebx_get_param(sim->extras, force->ap, "res_flaringindex");
-    const double* const ffudge_ptr       = rebx_get_param(sim->extras, force->ap, "res_ffudge");
-    const double* const sigma0_ptr       = rebx_get_param(sim->extras, force->ap, "res_sigma0");
-    const double* const alpha_ptr        = rebx_get_param(sim->extras, force->ap, "res_alpha");
+    
+    const double* const tau_a_ptr        = rebx_get_param(sim->extras, p->ap, "tau_a");
+    const double* const tau_e_ptr        = rebx_get_param(sim->extras, p->ap, "tau_e");
+    const double* const tau_inc_ptr      = rebx_get_param(sim->extras, p->ap, "tau_inc");
     const double* const redge_ptr        = rebx_get_param(sim->extras, force->ap, "res_redge");
     const double* const deltaredge_ptr   = rebx_get_param(sim->extras, force->ap, "res_deltaredge");
     const double* const tdep_ptr         = rebx_get_param(sim->extras, force->ap, "res_tdep");
@@ -101,70 +97,41 @@ static struct reb_vec3d rebx_calculate_src_modify_orbits_resonance_relax(struct 
     const double dvx = p->vx - source->vx;
     const double dvy = p->vy - source->vy;
     const double dvz = p->vz - source->vz;
-    const double dx = p->x - source->x;
-    const double dy = p->y - source->y;
-    const double dz = p->z - source->z;
+    const double dx = p->x-source->x;
+    const double dy = p->y-source->y;
+    const double dz = p->z-source->z;
     const double r2 = dx*dx + dy*dy + dz*dz;
     const double rp = sqrt(r2);
-
+    
     struct reb_vec3d a = {0};
 
-    if(aspectratio0_ptr != NULL){
-        aspectratio0 = *aspectratio0_ptr;
-    } else {
-        reb_error(sim,"aspectratio0 not specified\n");
-        return a;
+    if(tau_a_ptr != NULL){
+        tau_a = *tau_a_ptr;
     }
-
-    if(flaringindex_ptr != NULL){
-        flaringindex = *flaringindex_ptr;
-    } else {
-        reb_error(sim,"flaringindex not specified\n");
-        return a;
+    if(tau_e_ptr != NULL){
+        tau_e = *tau_e_ptr;
     }
-
-    if(ffudge_ptr != NULL){
-        ffudge = *ffudge_ptr;
-    } else {
-        reb_error(sim,"ffudge not specified\n");
-        return a;
+    if(tau_inc_ptr != NULL){
+        tau_inc = *tau_inc_ptr;
     }
-
-    if(sigma0_ptr != NULL){
-        sigma0 = *sigma0_ptr;
-    } else {
-        reb_error(sim,"sigma0 not specified\n");
-        return a;
-    }
-
-    if(alpha_ptr != NULL){
-        alpha = *alpha_ptr;
-    } else {
-        reb_error(sim,"alpha not specified\n");
-        return a;
-    }
-
     if(redge_ptr != NULL){
         redge = *redge_ptr;
     } else {
         reb_error(sim,"redge not specified\n");
         return a;
     }
-
     if(deltaredge_ptr != NULL){
         deltaredge = *deltaredge_ptr;
     } else {
         reb_error(sim,"deltaredge not specified\n");
         return a;
     }
-
     if(tdep_ptr != NULL){
         tdep = *tdep_ptr;
     } else {
         reb_error(sim,"tdep not specified\n");
         return a;
     }
-
     if(deltatdep_ptr != NULL){
         deltatdep = *deltatdep_ptr;
     } else {
@@ -172,8 +139,7 @@ static struct reb_vec3d rebx_calculate_src_modify_orbits_resonance_relax(struct 
         return a;
     }
 
-
-    double sigma = sigma0 * pow(rp, -alpha) * 0.5*(1.0 + tanh( (rp - redge) / deltaredge)); 
+    double sigma = 0.5*(1.0 + tanh( (rp - redge) / deltaredge)); 
     if (sim->t > tdep){
         if (sim->t < tdep + deltatdep){
             sigma *= (1.0 - (sim->t - tdep)/deltatdep);
@@ -182,41 +148,21 @@ static struct reb_vec3d rebx_calculate_src_modify_orbits_resonance_relax(struct 
         }
     }
 
-    const double theta = atan2(dy,dx);
-    const double dvr     = dvx * (cos(theta))  + dvy * sin(theta);
-    const double dvtheta = dvx * (-sin(theta)) + dvy * cos(theta);
-    const double Omega = sqrt( G * source->m / pow(rp,3) );
-    const double vk = Omega * rp;
-    const double aspectratio = aspectratio0 * pow(rp, flaringindex);
-    const double A_c_r     =  0.057; 
-    const double A_c_theta = -0.868;
-    const double A_c_z     = -1.088;
-    const double A_s_r     =  0.176;
-    const double A_s_theta =  0.325;
-    const double A_s_z     = -0.871;
+    a.x =  sigma*dvx/(2.*tau_a);
+    a.y =  sigma*dvy/(2.*tau_a);
+    a.z =  sigma*dvz/(2.*tau_a);
 
-    // orignal formulae have vk/cs all over - replace with aspectratio = cs/vk
-    const double fdampr     = (p->m/source->m) * pow(aspectratio,-4) *(sigma *rp*rp / source->m) * Omega
-                              *(2.0 * A_c_r * (dvtheta - rp * Omega) + A_s_r * dvr);
-    const double fdamptheta = (p->m/source->m) * pow(aspectratio,-4) *(sigma *rp*rp / source->m) * Omega
-                              *(2.0 * A_c_theta * (dvtheta - rp * Omega) + A_s_theta * dvr);
-    const double fdampz     = (p->m/source->m) * pow(aspectratio,-4) *(sigma *rp*rp / source->m) * Omega
-                              *(2.0 * A_c_z * dvz + A_s_z * dz * Omega);
-    const double fmigtheta  = ffudge * -2.17 * (p->m/source->m) * pow(aspectratio,-2) 
-                              * (sigma *rp*rp / source->m) * Omega * vk;
-    const double fdampx = cos(theta) * fdampr - sin(theta) * fdamptheta;
-    const double fdampy = sin(theta) * fdampr + cos(theta) * fdamptheta;
-    const double fmigx  = - sin(theta) * fmigtheta;
-    const double fmigy  = + cos(theta) * fmigtheta;
-
-    a.x += fdampx + fmigx;
-    a.y += fdampy + fmigy;
-    a.z += fdampz;
-
+    if (tau_e < INFINITY || tau_inc < INFINITY){
+        const double vdotr = dx*dvx + dy*dvy + dz*dvz;
+        const double prefac = 2*vdotr/r2/tau_e;
+        a.x += sigma*prefac*dx;
+        a.y += sigma*prefac*dy;
+        a.z += sigma*(prefac*dz + 2.*dvz/tau_inc);
+    }
     return a;
 }
 
-void rebx_modify_orbits_resonance_relax(struct reb_simulation* const sim, struct rebx_force* const force, struct reb_particle* const particles, const int N){
+void rebx_modify_orbits_forces_edge(struct reb_simulation* const sim, struct rebx_force* const force, struct reb_particle* const particles, const int N){
     int* ptr = rebx_get_param(sim->extras, force->ap, "coordinates");
     enum REBX_COORDINATES coordinates = REBX_COORDINATES_JACOBI; // Default
     if (ptr != NULL){
@@ -224,5 +170,5 @@ void rebx_modify_orbits_resonance_relax(struct reb_simulation* const sim, struct
     }
     const int back_reactions_inclusive = 1;
     const char* reference_name = "primary";
-    rebx_com_force(sim, force, coordinates, back_reactions_inclusive, reference_name, rebx_calculate_src_modify_orbits_resonance_relax, particles, N);
+    rebx_com_force(sim, force, coordinates, back_reactions_inclusive, reference_name, rebx_calculate_modify_orbits_forces, particles, N);
 }

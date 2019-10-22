@@ -68,6 +68,7 @@ void rebx_gr_full(struct reb_simulation* const sim, struct rebx_force* const for
 void rebx_gr_potential(struct reb_simulation* const sim, struct rebx_force* const force, struct reb_particle* const particles, const int N);
 void rebx_radiation_forces(struct reb_simulation* const sim, struct rebx_force* const force, struct reb_particle* const particles, const int N);
 void rebx_modify_orbits_forces(struct reb_simulation* const sim, struct rebx_force* const force, struct reb_particle* const particles, const int N);
+void rebx_modify_orbits_forces_edge(struct reb_simulation* const sim, struct rebx_force* const force, struct reb_particle* const particles, const int N);
 void rebx_modify_orbits_resonance_relax(struct reb_simulation* const sim, struct rebx_force* const force, struct reb_particle* const particles, const int N);
 void rebx_tides_precession(struct reb_simulation* const sim, struct rebx_force* const force, struct reb_particle* const particles, const int N);
 void rebx_central_force(struct reb_simulation* const sim, struct rebx_force* const force, struct reb_particle* const particles, const int N);
