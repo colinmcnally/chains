@@ -173,7 +173,7 @@ static struct reb_vec3d rebx_calculate_src_modify_orbits_resonance_relax(struct 
     }
 
 
-    double sigma = sigma0 * pow(rp, -alpha) * 0.5*(1.0 + tanh( (rp - redge) / deltaredge)); 
+    double sigma = sigma0 * pow(rp, -alpha) * tanh( (rp - redge) / deltaredge); 
     if (sim->t > tdep){
         if (sim->t < tdep + deltatdep){
             sigma *= (1.0 - (sim->t - tdep)/deltatdep);
