@@ -1,0 +1,32 @@
+# Add any directories, files, or patterns you don't want to be tracked by version control
+*.so
+*.o
+*.swp
+*.swo
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so
+
+# Distribution / packaging
+bin/
+build/
+develop-eggs/
+dist/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.eggs/
+
+.Rhistory
+.ipynb_checkpoints/
+*.bak
