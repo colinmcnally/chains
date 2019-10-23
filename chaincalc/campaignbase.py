@@ -5,10 +5,10 @@
 from collections import OrderedDict
 
 class CampaignBase:
-   """Base class for sets of models, called a Campaign
+   """Base class for sets of models, called a Campaign.
       Holds lists of models objects for now, indexed by hash
       Defines how to concatenate together, which might 
-      be useful when analysing sets of results together"""
+      be useful when analysing sets of results together."""
    # hold the hash-indexed Model objects
    _models = OrderedDict()
    _keys = []
@@ -16,6 +16,7 @@ class CampaignBase:
    indexes = OrderedDict()
 
    def __add__(self, other):
+     """For compositing campaigns together, maybe for joint analysis"""
      print('not implemented yet')
 
    def add_model(self, model):
@@ -23,6 +24,7 @@ class CampaignBase:
        self._keys.append(model.hash)       
 
    def new_index(self):
+       """Get a new object to be used as an index, wrapped here so the base object can be swapped out."""
        return OrderedDict()
 
    def get_model_hash(self, key):
@@ -32,5 +34,6 @@ class CampaignBase:
        return self._models[self._keys[index]]
 
    def get_size(self):
+       """Get the number of models in the campaign."""
        return len(self._models)
 
