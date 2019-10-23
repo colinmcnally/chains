@@ -34,6 +34,7 @@ class Campaign002(chaincalc.CampaignBase):
          'snap_wall_interval':15*60,
          'incscatter':np.pi/100.0,
          'aspread':0.05 }
+      p['physical_outputs'] = [p['tdep'], p['tdep']+p['deltatdep']]
       nmodels = 10
       nchains = range(5,11) 
       p_ress = range(3,7)
