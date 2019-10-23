@@ -9,10 +9,11 @@ keplertime = 2.0*np.pi*0.1**1.5
 targettime = 1e9*keplertime
 wall_check_interval = 15*60
 
+
 class Campaign002(chaincalc.CampaignBase):
   def __init__(self):
       p = {
-         'tau_a':-1e5*keplertime,
+         'tau_a':-1e6*keplertime,
          'tau_e':-1e3*keplertime,
          'tau_inc':-1e3*keplertime,
          'redge':0.1,
