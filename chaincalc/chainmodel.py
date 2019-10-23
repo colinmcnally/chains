@@ -50,7 +50,8 @@ class Model:
                       'integrator_dt',
                       'snap_wall_interval',
                       'incscatter',
-                      'aspread']
+                      'aspread',
+                      'physical_outputs']
         for parstr in paramlist:
             try:
                 parval = params[parstr]
@@ -265,7 +266,8 @@ class TauDampModel(Model):
                       'integrator_dt',
                       'snap_wall_interval',
                       'incscatter',
-                      'aspread']
+                      'aspread',
+                      'physical_outputs']
         for parstr in paramlist:
             try:
                 parval = params[parstr]

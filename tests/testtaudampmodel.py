@@ -36,6 +36,7 @@ p = {'tau_a':-1e5,
      'snap_wall_interval':15,
      'incscatter':np.pi/100.0,
      'aspread':0.05 }
+p['physical_outputs'] = [p['tdep'], p['tdep']+p['deltatdep']]
 
 def runtest(p):
     c = chaincalc.TauDampModel(p)

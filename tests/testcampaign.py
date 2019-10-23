@@ -39,6 +39,7 @@ class myruns(chaincalc.CampaignBase):
          'snap_wall_interval':15,
          'incscatter':np.pi/100.0,
          'aspread':0.05  }
+      p['physical_outputs'] = [1e0, 1e1, 1e2]
       #make a bunch of realizations of the same model, with randomized phases
       nmodels = 10
       nchains = range(5,11) 
