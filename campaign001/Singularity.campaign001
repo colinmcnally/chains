@@ -60,6 +60,7 @@ From:ubuntu:disco
     cd opt
     git clone https://github.com/colinmcnally/chains.git
     cd chains
+    git reset --hard de91417bb1e44f18566bb7d3f5d87b0e6526b977
     cd crbx
     make
     ln -s libreboundx.so libreboundx.cpython-37m-x86_64-linux-gnu.so
