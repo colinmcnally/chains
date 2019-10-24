@@ -52,19 +52,21 @@ for ip in range(0,nchain):
         Omega[ip,i] = sim.particles[ip+1].Omega 
 
 for ip in range(0,nchain-1):
-   plt.plot(np.array(sa.t[0:sa.nblobs])/keplertime, a[ip,:],'-')
+   plt.plot(np.array(sa.t[0:sa.nblobs])/keplertime, a[ip,:], '-', label='{}'.format(ip+1))
 plt.xlim(left=0)
 plt.title('semimajor axis')
+plt.legend()
     
 plt.figure()
 for ip in range(0,nchain-1):
-   plt.plot(np.array(sa.t[0:sa.nblobs])/keplertime, P[ip+1,:]/P[ip,:],'-')
+   plt.plot(np.array(sa.t[0:sa.nblobs])/keplertime, P[ip+1,:]/P[ip+0,:],'-', label='{}:{}'.format(ip+1+1, ip+1))
 
 plt.axhline(y=(p_res-1+1.0)/(p_res-1),color='grey',dashes=(4,4),linewidth=1)
 plt.axhline(y=(p_res+1+1.0)/(p_res+1),color='grey',dashes=(4,4),linewidth=1)
 plt.axhline(y=(p_res+1.0)/p_res,color='grey',dashes=(4,4),linewidth=1)
 plt.xlim(left=0)
 plt.title('Period ratios')
+plt.legend()
 
 def wrap2pi(x):
     return np.mod(x, 2.0*np.pi) - np.pi
@@ -79,7 +81,7 @@ def compresangles(l,Omega,omega,p,inner,outer):
     return [theta1, theta2]
 
 
-print('tdep ',m.tdep/keplertime,m.params['tdep']/keplertime,'deltatdep',m.deltatdep/keplertime)
+print('tdep ', m.params['tdep']/keplertime, 'deltatdep', m.params['deltatdep']/keplertime)
 for ip in range(0,nchain-1):
     angles = compresangles(l, Omega, omega, p_res, ip, ip+1)
 
