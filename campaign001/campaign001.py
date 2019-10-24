@@ -19,8 +19,8 @@ class Campaign001(chaincalc.CampaignBase):
          'alpha':1.0,
          'flaringindex':2.0/7.0,
          'ffudge':1.0/100.0,
-         'tdep':5e6*keplertime,
-         'deltatdep':5e5*keplertime,
+         'tdep':2e6*keplertime,
+         'deltatdep':2e6*keplertime,
          'pmass':1e-5,
          'nchain':4,
          'q_res':1,
@@ -33,7 +33,7 @@ class Campaign001(chaincalc.CampaignBase):
          'integrator_dt':1e-2*keplertime,
          'snap_wall_interval':15*60,
          'incscatter':np.pi/100.0,
-         'aspread':0.05 }
+         'aspread':0.01 }
       p['physical_outputs'] = [p['tdep'], p['tdep']+p['deltatdep']]
       nmodels = 10
       nchains = range(5,11) 
