@@ -45,3 +45,6 @@ The data from these simulations performed with the old_v1 version on the orbit c
 ![plot of collision times for chains of planets](./plots/tcross_q1em5_n3-10_p3-6.png)
 
 where orange triangles indicate lower bounds.
+
+### Author
+Colin McNally www.colinmcnally.ca
