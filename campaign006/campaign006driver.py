@@ -1,6 +1,6 @@
 # Colin McNally 2019 <colin@colinmcnally.ca>
 #
-# Chains campaign005 integration driver
+# Chains campaign006 integration driver
 # 
 import sys
 import time
@@ -13,14 +13,14 @@ wall_start = time.time()
 # three days minus a bit on apocrita
 wall_limit = 72*60*60 - 15*60
 
-from campaign005 import *
+from campaign006 import *
 
-col = Campaign005()
+col = Campaign006()
 print('Campaign has {} models'.format(col.get_size()))
 
 # Job array indexes start at 1 not 0
 runi = int(sys.argv[1])-1
-print('Will try to run model at index {} of campaign005'.format(runi))
+print('Will try to run model at index {} of campaign006'.format(runi))
 
 print('Wallclock checkpoint interval is {} seconds'.format(wall_check_interval))
 
