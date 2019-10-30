@@ -117,6 +117,8 @@ class Model:
     def overwrite_status(self):
         """Overwrite the status file, it's a JSON format dict"""
         self.status['sim.t'] = self.sim.t
+        self.status['status_filename'] = self.status_filename
+        self.status['simarchive_filename'] = self.simarchive_filename
         # formally, the params are redundant, as you can;t calculate the filename hash
         #  without knowing them!
         self.status['params'] = self.params
