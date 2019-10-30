@@ -51,32 +51,32 @@ class WallClockLimitedDriver(DriverBase):
                 model.lock()
                 model.set_wall_start(self.wall_start)
 
-            try:
-                lastsnap = self.wall_start
+                try:
+                    lastsnap = self.wall_start
 
-                while (model.sim.t < targettime) and ((time.time() - self.wall_start) <= wall_limit) and model.status['status']=='running':
-                    nextcheck = min(model.sim.t+check_interval, targettime)
-                    nextphysout = self.get_next_physical_output(model.sim.t)
-                    if nextcheck > nextphysout:
-                        manual_flag = True    
-                    else:
-                        manual_flag = False   
+                    while (model.sim.t < targettime) and ((time.time() - self.wall_start) <= wall_limit) and model.status['status']=='running':
+                        nextcheck = min(model.sim.t+check_interval, targettime)
+                        nextphysout = self.get_next_physical_output(model.sim.t)
+                        if nextcheck > nextphysout:
+                            manual_flag = True    
+                        else:
+                            manual_flag = False   
          
-                    model.sim.integrate(nextcheck)
-                    if ((time.time() - lastsnap) > model.params['snap_wall_interval']) or manual_flag:
-                        print('\nManual snapshot flag: {} wall elapsed: {:e}'.format(manual_flag, time.time() -self.wall_start))
+                        model.sim.integrate(nextcheck)
+                        if ((time.time() - lastsnap) > model.params['snap_wall_interval']) or manual_flag:
+                            print('\nManual snapshot flag: {} wall elapsed: {:e}'.format(manual_flag, time.time() -self.wall_start))
+                            model.manual_snapshot()
+                            lastsnap = time.time()
+
+                    if (time.time() - self.wall_start) > wall_limit:
+                        print('\nWall limit exceeded, will checkpoint and shutdown: {:e}'.format(time.time() -self.wall_start))
                         model.manual_snapshot()
-                        lastsnap = time.time()
 
-                if (time.time() - self.wall_start) > wall_limit:
-                    print('\nWall limit exceeded, will checkpoint and shutdown: {:e}'.format(time.time() -self.wall_start))
+                except rebound.Collision:
+                    model.mark_collision()
+                else:
                     model.manual_snapshot()
-
-            except rebound.Collision:
-                model.mark_collision()
-            else:
-                model.manual_snapshot()
-            model.unlock()
-            print('')
+                model.unlock()
+                print('')
         else:
             print('Not integrating, the status is already: {}',model.status['status'])
