@@ -39,7 +39,7 @@ p = {'tau_a':-1e5,
 p['physical_outputs'] = [p['tdep'], p['tdep']+p['deltatdep']]
 
 def runtest(p):
-    c = chaincalc.TauDampModel(p)
+    c = chaincalc.TauDampModel(p, verbose=True)
 
     c.init_rebound()
 

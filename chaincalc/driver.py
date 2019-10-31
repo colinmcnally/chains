@@ -7,14 +7,14 @@ import time
 import rebound
 
 class DriverBase():
-    def __init__(self, physical_outputs):
-        self.physical_outputs = sorted(physical_outputs) 
+    def __init__(self, verbose=False):
+        self.verbose = verbose
   
     def runModel(self, model):
         pass
  
     def set_physical_outputs(self, physical_outputs):
-       self.physical_outputs = physical_outputs
+       self.physical_outputs = sorted(physical_outputs)
 
     def get_next_physical_output(self, t):
        """Return the next physical output time past time t, assumes a list of times, not a frequency, might be a limitation"""
@@ -30,19 +30,23 @@ class DriverBase():
 class WallClockLimitedDriver(DriverBase):
     """An abstracted driver class for wallclock-limited execution."""
 
-    def __init__(self, wall_start):
+    def __init__(self, wall_start, verbose=False):
         """Initialize driver, and keep track of the process start time wall_start, calls super class __init__"""
         self.wall_start = wall_start
+        self.verbose = verbose
 
 
     def runModel(self, model, targettime, wall_limit, check_interval):
         """Run the model passed, wall_start should be the job start time, and check execution on physical time check_time"""
 
         self.set_physical_outputs(model.params['physical_outputs'])
+        # set model verbose following driver verbose
+        model.verbose = self.verbose
         model.init_rebound()
 
-        print('Model status after init')
-        model.sim.status()
+        if self.verbose:
+            print('Model status after init')
+            model.sim.status()
 
         if model.status['status']=='running':
             if model.status['lock']:
@@ -64,12 +68,14 @@ class WallClockLimitedDriver(DriverBase):
          
                         model.sim.integrate(nextcheck)
                         if ((time.time() - lastsnap) > model.params['snap_wall_interval']) or manual_flag:
-                            print('\nManual snapshot flag: {} wall elapsed: {:e}'.format(manual_flag, time.time() -self.wall_start))
+                            if self.verbose:
+                                print('\nManual snapshot flag: {} wall elapsed: {:e}'.format(manual_flag, time.time() -self.wall_start))
                             model.manual_snapshot()
                             lastsnap = time.time()
 
                     if (time.time() - self.wall_start) > wall_limit:
-                        print('\nWall limit exceeded, will checkpoint and shutdown: {:e}'.format(time.time() -self.wall_start))
+                        if self.verbose:
+                            print('\nWall limit exceeded, will checkpoint and shutdown: {:e}'.format(time.time() -self.wall_start))
                         model.manual_snapshot()
 
                 except rebound.Collision:
@@ -77,6 +83,8 @@ class WallClockLimitedDriver(DriverBase):
                 else:
                     model.manual_snapshot()
                 model.unlock()
-                print('')
+                if self.verbose:
+                    print('')
         else:
-            print('Not integrating, the status is already: {}',model.status['status'])
+            if self.verbose:
+                print('Not integrating, the status is already: {}',model.status['status'])

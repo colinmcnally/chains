@@ -37,10 +37,11 @@ p = {'aspectratio0':0.035,
      'integrator_dt':1e-2*2*np.pi*0.1**1.5,
      'snap_wall_interval':60*60,
      'incscatter':np.pi/100.0,
-     'aspread':0.05 }
+     'aspread':0.05,
+     'physical_outputs':1000.0 }
 
 def runtest(p):
-    c = chaincalc.Model(p)
+    c = chaincalc.Model(p, verbose=True)
 
     c.init_rebound()
 

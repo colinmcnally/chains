@@ -44,7 +44,6 @@ class MpiSchedualer:
             # if there is work leftover, take it
             if len(am) > 0: 
                 runi = am.popleft()
-                print('Rank {} got {}'.format(self.rank, runi))
                 rundone = self.run_model(campaign, runi, targettime, check_interval)
                 # could make this return more symmetrical
                 if rundone:
@@ -63,8 +62,8 @@ class MpiSchedualer:
                 elif finished[0] == 'waiting':
                     pass
                 else:
-                    print('Error, unknwon status message ',finished)
-            print('*** working list is now ',am)
+                    print('Error, MpiSchedualer unknown status message ',finished)
+            print('***Master working list is now ',list(am))
             if len(am) == 0:
                 for dest in range(1,self.nranks):
                     self.comm.send(['exit'], dest=dest, tag=1)
@@ -80,7 +79,6 @@ class MpiSchedualer:
         while (time.time() < self.wall_start + self.wall_limit_total - self.wall_limit_chunk and not exitFlag):
             #post a blocking recv, to wait for an assignment from rank==0
             cmd = self.comm.recv(source=0, tag=1)
-            print('Rank {} got {}'.format(self.rank, cmd))
             if cmd[0] == 'run': 
                 rundone = self.run_model(campaign, cmd[1], targettime, check_interval)
                 if rundone:
@@ -96,10 +94,9 @@ class MpiSchedualer:
 
     def run_model(self, campaign, runi, targettime, check_interval):
         """Execute a model from the campaign, return True if it has passed targettime"""
-        print('Rank {} Will try to run model at index {} of testcampaign'.format(self.rank, runi), flush=True)
 
         tm = campaign.get_model(runi)
-        print('hash is ',tm.hash)
+        print('Rank {} will try to run model at index {} of campaign hash {}'.format(self.rank, runi, tm.hash), flush=True)
         now = time.time()
         driver = chaincalc.WallClockLimitedDriver(now)
         # run a chunk, but don't run past the total lifetime allowed for this process

@@ -60,11 +60,12 @@ class Model:
                 raise
  
 
-    def __init__(self, params):
+    def __init__(self, params, verbose=False):
         """Params is a dict of parameters, easier to reuse when initializing in a loop.
            Init broken up into methods to make overloading easier."""
         self.validate_paramlist(params)
         self.other_init(params)
+        self.verbose = verbose
 
 
     def other_init(self, params):
@@ -132,9 +133,11 @@ class Model:
         try:
             with open(self.status_filename,'r') as json_file:
                 self.status = json.load(json_file)
-                print('loaded status')
+                if self.verbose:
+                    print('loaded status')
         except FileNotFoundError:
-            print('No old status file was found at: {}'.format(self.status_filename))
+            if self.verbose:
+                print('No old status file was found at: {}'.format(self.status_filename))
             raise
   
 
@@ -177,7 +180,8 @@ class Model:
             for ip in range(1, self.params['nchain']+1):
                 true_anomaly = rng.uniform(0.0, 2.0*np.pi)
                 inclination = rng.normalvariate(0.0, self.params['incscatter'])
-                print('adding {} at a={:e}'.format(ip,a))
+                if self.verbose:
+                    print('adding {} at a={:e}'.format(ip,a))
                 pt = rebound.Particle(simulation=self.sim, primary=self.sim.particles[0],
                                       m=self.params['pmass'], a=a, inc=inclination, f=true_anomaly)
                 pt.r = a*np.sqrt(pt.m/3.0)
@@ -196,7 +200,8 @@ class Model:
 
     def add_force(self):
         """Add reboundx forces. This is a method so it can be overloaded easily"""
-        print(' adding modify_orbits_resonance_relax')
+        if self.verbose:
+            print(' adding modify_orbits_resonance_relax')
         self.rebx = reboundx.Extras(self.sim)
         mof = self.rebx.load_force('modify_orbits_resonance_relax')
         mof.params['res_aspectratio0'] = self.params['aspectratio0']
@@ -218,7 +223,8 @@ class Model:
         wall_now = time.time()
         if (wall_now - self.lastheart > self.heart_print_interval):
             self.lastheart = wall_now
-            print("time {:e} walltime {:e}".format(sim.contents.t, wall_now -self.wall_start), end='\r')
+            if self.verbose:
+                print("time {:e} walltime {:e}".format(sim.contents.t, wall_now -self.wall_start), end='\r')
 
 
     def mark_collision(self):
@@ -229,8 +235,9 @@ class Model:
         for p in self.sim.particles:
             if p.lastcollision == self.sim.t:
                 collided.append(p.index)
-        print('') # newline
-        print('Particles {} collided sim.t {}'.format(collided, self.sim.t))
+        if self.verbose:
+            print('') # newline
+            print('Particles {} collided sim.t {}'.format(collided, self.sim.t))
         self.status['status'] = 'stop collision'
         self.status['collided'] = collided
         self.overwrite_status()
@@ -280,7 +287,8 @@ class TauDampModel(Model):
 
     def add_force(self):
         """Add tau damping force"""
-        print('adding modify_orbits_forces_edge')
+        if self.verbose:
+            print('adding modify_orbits_forces_edge')
         self.rebx = reboundx.Extras(self.sim)
         mof = self.rebx.load_force('modify_orbits_forces_edge')
         mof.params['res_redge'] = self.params['redge']

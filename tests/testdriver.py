@@ -25,7 +25,7 @@ tm = col.get_model(runi)
 
 print('hash is ',tm.hash)
 
-driver = chaincalc.WallClockLimitedDriver(wall_start)
+driver = chaincalc.WallClockLimitedDriver(wall_start, verbose=True)
 
 driver.runModel(tm, targettime, wall_limit, 100*keplertime)
 
