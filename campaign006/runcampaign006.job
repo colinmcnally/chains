@@ -13,4 +13,4 @@
 # Load the application module
 module load singularity/2.6.1
 
-singularity exec campaign006.simg python3 -u /opt/chains/campaign005/campaign006driver.py ${SGE_TASK_ID}
+singularity exec campaign006.simg python3 -u /opt/chains/campaign006/campaign006driver.py ${SGE_TASK_ID}
