@@ -1,5 +1,7 @@
 Bootstrap:docker
-From:ubuntu:disco
+#From:ubuntu:disco
+# Use bionic, to see if the older OpenMPI works better with Apocrita
+From:ubuntu:bionic
 
 %environment
     export PYTHONPATH=/opt/chains:/opt/chains/crbx:/opt/rebound
@@ -10,7 +12,6 @@ From:ubuntu:disco
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
     apt-get install wget software-properties-common apt-transport-https -y
-    #openmpi 3.1.3 - usually matches cluster MPI availability
     apt-get install libopenmpi-dev -y
     apt-get install dvipng -y
     apt-get install less -y
