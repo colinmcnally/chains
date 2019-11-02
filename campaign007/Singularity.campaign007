@@ -12,30 +12,54 @@ From:ubuntu:bionic
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
     apt-get install wget software-properties-common apt-transport-https -y
-    apt-get install libopenmpi-dev -y
-    apt-get install dvipng -y
+    apt-get install autoconf build-essential wget openssh-server -y
+    #apt-get install -libopenmpi-dev -y
+  :  # Install OpenMPI
+    wget https://www.open-mpi.org/software/ompi/v2.1/downloads/openmpi-2.1.0.tar.gz
+    tar -xvf openmpi-2.1.0.tar.gz
+    rm openmpi-2.1.0.tar.gz
+    cd openmpi-2.1.0
+
+    ./configure --with-sge
+    make
+    make all install
+
+    # Update libraries
+    ldconfig
+
+    # Build an MPI test
+    /usr/local/bin/mpicc examples/ring_c.c -o /usr/bin/mpi_ring
+
+    cd ..
+    #apt-get install dvipng -y
     apt-get install less -y
-    apt-get install ipython3 -y
-    apt-get install ipython3-qtconsole -y
-    apt-get install python3-matplotlib -y
+    #apt-get install ipython3 -y
+    #apt-get install ipython3-qtconsole -y
+    #apt-get install python3-matplotlib -y
     apt-get install python3-h5py -y
     apt-get install python3-numpy -y
-    apt-get install python3-mpi4py -y
-    apt-get install python3-scipy -y
-    apt-get install python3-sklearn -y
-    apt-get install python3-sklearn-pandas -y
-    apt-get install python3-pandas -y
-    apt-get install python3-statsmodels -y
-    apt-get install python3-seaborn -y
-    apt-get install python3-pip -y
-    apt-get install texlive-latex-base -y
-    apt-get install texlive-latex-extra -y
+    #apt-get install python3-mpi4py libopenmpi2- libopenmpi-dev- -y
+    #apt-get install python3-scipy -y
+    #apt-get install python3-sklearn -y
+    #apt-get install python3-sklearn-pandas -y
+    #apt-get install python3-pandas -y
+    #apt-get install python3-statsmodels -y
+    #apt-get install python3-seaborn -y
+    #apt-get install python3-pip -y
+    #apt-get install texlive-latex-base -y
+    #apt-get install texlive-latex-extra -y
     apt-get install htop -y
     apt-get install git -y
     apt-get install vim -y
-    apt-get install libhdf5-dev -y 
-    apt-get install r-recommended -y
-    apt-get install r-cran-survival -y
+    #apt-get install libhdf5-dev -y 
+    #apt-get install r-recommended -y
+    #apt-get install r-cran-survival -y
+   
+    # need to do this last as it leaves the whole apt package tree broken
+    cd tmp
+    apt-get download python3-mpi4py
+    dpkg -i --ignore-depends=libopenmpi2,libopenmpi-dev python3-mpi4py_2.0.0-3_amd64.deb
+    cd /
 
 
     # Install required R packages
@@ -44,7 +68,7 @@ From:ubuntu:bionic
     #R --slave -e 'install.packages(c("ggplot2"), repos="https://cloud.r-project.org/")'
 
     # build the font cache
-    python3 -c "import matplotlib.pyplot"
+    #python3 -c "import matplotlib.pyplot"
 
     #build librebound
     cd opt
