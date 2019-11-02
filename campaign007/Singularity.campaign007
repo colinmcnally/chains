@@ -45,7 +45,7 @@ From:ubuntu:trusty
     #apt-get install python3-pandas -y
     #apt-get install python3-statsmodels -y
     #apt-get install python3-seaborn -y
-    #apt-get install python3-pip -y
+    apt-get install python3-pip -y
     #apt-get install texlive-latex-base -y
     #apt-get install texlive-latex-extra -y
     apt-get install htop -y
@@ -58,7 +58,7 @@ From:ubuntu:trusty
     # need to do this last as it leaves the whole apt package tree broken
     cd tmp
     apt-get download python3-mpi4py
-    dpkg -i --ignore-depends=libopenmpi2,libopenmpi-dev python3-mpi4py_2.0.0-3_amd64.deb
+    dpkg -i --ignore-depends=libopenmpi2,libopenmpi-dev python3-mpi4py_1.3.1+hg20131106-1build3_amd64.deb
     cd /
 
 
