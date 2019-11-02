@@ -60,7 +60,7 @@ From:ubuntu:trusty
     #apt-get download python3-mpi4py
     #dpkg -i --ignore-depends=libopenmpi1.6,libopenmpi-dev python3-mpi4py_1.3.1+hg20131106-1build3_amd64.deb
     #cd /
-    pip install mpi4py
+    pip3 install mpi4py
 
 
     # Install required R packages
