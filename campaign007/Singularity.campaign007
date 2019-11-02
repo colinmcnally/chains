@@ -58,7 +58,7 @@ From:ubuntu:trusty
     # need to do this last as it leaves the whole apt package tree broken
     cd tmp
     apt-get download python3-mpi4py
-    dpkg -i --ignore-depends=libopenmpi2,libopenmpi-dev python3-mpi4py_1.3.1+hg20131106-1build3_amd64.deb
+    dpkg -i --ignore-depends=libopenmpi1.6,libopenmpi-dev python3-mpi4py_1.3.1+hg20131106-1build3_amd64.deb
     cd /
 
 
