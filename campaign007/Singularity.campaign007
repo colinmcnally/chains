@@ -1,7 +1,7 @@
 Bootstrap:docker
 #From:ubuntu:disco
-# Use bionic, to see if the older OpenMPI works better with Apocrita
-From:ubuntu:bionic
+# Use trusty, see if MPI  works better with Apocrita
+From:ubuntu:trusty
 
 %environment
     export PYTHONPATH=/opt/chains:/opt/chains/crbx:/opt/rebound
@@ -14,7 +14,7 @@ From:ubuntu:bionic
     apt-get install wget software-properties-common apt-transport-https -y
     apt-get install autoconf build-essential wget openssh-server -y
     #apt-get install -libopenmpi-dev -y
-  :  # Install OpenMPI
+    # Install OpenMPI
     wget https://www.open-mpi.org/software/ompi/v2.1/downloads/openmpi-2.1.0.tar.gz
     tar -xvf openmpi-2.1.0.tar.gz
     rm openmpi-2.1.0.tar.gz
