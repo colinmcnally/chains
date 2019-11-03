@@ -63,7 +63,7 @@ From:ubuntu:trusty
     ln -sf /usr/local/bin/python3.7 /usr/bin/python3
 
     #this is a hack... really bad?
-    sed -i '1s/^/#! /usr/bin/python2.7\n/' /usr/bin/lsb_release
+    sed -i 1s/^/"\#\! \/usr\/bin\/python2.7\n"/ /usr/bin/lsb_release
 
     #wget https://www.openssl.org/source/openssl-1.0.2t.tar.gz
     #cd openssl-1.0.2t
@@ -91,7 +91,7 @@ From:ubuntu:trusty
 
     wget https://files.pythonhosted.org/packages/41/17/c62faccbfbd163c7f57f3844689e3a78bae1f403648a6afb1d0866d87fbb/python_dateutil-2.8.0-py2.py3-none-any.whl
     pip3.7 install python_dateutil-2.8.0-py2.py3-none-any.whl
-    rm python_dateutil
+    rm python_dateutil*
 
     wget https://files.pythonhosted.org/packages/e7/f9/f0b53f88060247251bf481fa6ea62cd0d25bf1b11a87888e53ce5b7c8ad2/pytz-2019.3-py2.py3-none-any.whl
     pip3.7 install pytz-2019.3-py2.py3-none-any.whl
