@@ -9,11 +9,11 @@ The entire system is run from a Singularity container (like Docker, but more HPC
   * Singularity https://sylabs.io
   * Singularity-Hub collection for this repo: https://singularity-hub.org/collections/3350
 
-* **SGE job array script**
-Allocates nodes and set the containers running on the cluster.
+* **SGE job script**
+Allocates nodes and set the containers running on the cluster via the queue system.
 
 * **Driver Class**
-A class which, informed by the Campaign object, directs execution of the simulation in a Model object, triggering I/O, checkpointing, restarts, and wall clock limits from the queue system. 
+A class which, informed by the Campaign object, directs execution of the simulation in a Model object, triggering I/O, checkpointing, restarts, and wall clock limits from the queue system. If the queue system is used to allocate a job array, the wallclock limited driver runs a single model of a job. If a single block of nodes is allocated at once for MPI-parallel mode a MPI-enabled load-balancer master-slave system wraps the wall clock limited driver to advance all the models in the campaign across the allocated cores.
 
 * **Campaign Class**
 A class which implements a library of Model objects. Primarily provides indexes to look up Model objects by parameter values.
