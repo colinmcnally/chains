@@ -60,7 +60,7 @@ From:ubuntu:trusty
     cd ../
    
     rm /usr/bin/python3
-    ln -sf /usr/bin/python3 /usr/local/bin/python3.7
+    ln -sf /usr/local/bin/python3.7 /usr/bin/python3
 
     #wget https://www.openssl.org/source/openssl-1.0.2t.tar.gz
     #cd openssl-1.0.2t
