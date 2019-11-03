@@ -62,6 +62,9 @@ From:ubuntu:trusty
     rm /usr/bin/python3
     ln -sf /usr/local/bin/python3.7 /usr/bin/python3
 
+    #this is a hack... really bad?
+    sed -i '1s/^/#! /usr/bin/python2.7\n/' /usr/bin/lsb_release
+
     #wget https://www.openssl.org/source/openssl-1.0.2t.tar.gz
     #cd openssl-1.0.2t
     #./config
