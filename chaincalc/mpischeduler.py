@@ -6,7 +6,7 @@ import collections
 import time
 import chaincalc
 
-class MpiSchedualer:
+class MpiScheduler:
     def __init__(self, campaign, targettime, wall_start, wall_limit_total, check_interval, wall_limit_chunk = 5*60.0):
         """__init__ calls everything, this is execute-on-instantiate"""
         self.exitFlag = False

@@ -4,4 +4,4 @@ from .campaignbase import CampaignBase
 from .driver import DriverBase
 from .driver import WallClockLimitedDriver
 from .postprocess import collect_to_lifetable
-from .mpischedualer import MpiSchedualer
+from .mpischeduler import MpiScheduler

@@ -28,4 +28,4 @@ from testcampaign import *
 check_interval = 100.0*keplertime
 
 #init does the running...
-runner = chaincalc.MpiSchedualer(col, targettime, wall_start, wall_limit_total, check_interval, wall_limit_chunk=10)
+runner = chaincalc.MpiScheduler(col, targettime, wall_start, wall_limit_total, check_interval, wall_limit_chunk=10)
