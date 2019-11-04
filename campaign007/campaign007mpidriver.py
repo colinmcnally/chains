@@ -10,7 +10,7 @@ wall_start = time.time()
 wall_limit_total = 72*60*60 - 15*60
 
 #Intervals of wallclock advance of a given model
-wall_limit_chunk = 27*60*60
+wall_limit_chunk = 27*60
 
 from campaign007 import *
 col = Campaign007()
