@@ -22,7 +22,7 @@ class Campaign007(chaincalc.CampaignBase):
          'ffudge':1.0/100.0,
          'tdep':2e6*keplertime,
          'deltatdep':2e6*keplertime,
-         'pmass':1e-6,
+         'pmass':3.16227766e-05,
          'nchain':4,
          'q_res':1,
          'p_res':4,
