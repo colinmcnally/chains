@@ -1,5 +1,5 @@
 # Colin McNally 2019 <colin@colinmcnally.ca>
-# Demo of a MPI based driver
+# Demo of a MPI based driver enabling asyncronous evolution
 # advances sims from a queue in wallclock chunks
 # Set to run in laptop, not container
 # 
@@ -28,4 +28,4 @@ from testcampaign import *
 check_interval = 100.0*keplertime
 
 #init does the running...
-runner = chaincalc.MpiScheduler(col, targettime, wall_start, wall_limit_total, check_interval, wall_limit_chunk=wall_limit_chunk)
+runner = chaincalc.MpiSchedulerAsync(col, targettime, wall_start, wall_limit_total, check_interval, wall_limit_chunk=wall_limit_chunk)

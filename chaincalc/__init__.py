@@ -5,3 +5,4 @@ from .driver import DriverBase
 from .driver import WallClockLimitedDriver
 from .postprocess import collect_to_lifetable
 from .mpischeduler import MpiScheduler
+from .mpischeduler import MpiSchedulerAsync
