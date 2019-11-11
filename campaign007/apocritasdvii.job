@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+#
+#$ -pe parallel 96
+#$ -l infiniband=sdv-ii
+#$ -l h_rt=72:00:0
+#$ -cwd
+#$ -j y
+#$ -N cmp07
+
+module purge
+module load singularity
+module load openmpi/2.1.0-gcc
+
+module list
+
+#env
+
+mpirun -np 96 singularity exec campaign007.simg python3 -u /opt/chains/campaign007/campaign007mpidriver.py
+#mpirun -np 96 singularity exec campaign007.simg python3 -u -c "from mpi4py import MPI; print('Hello ',MPI.COMM_WORLD.Get_rank())"
+#mpirun -np 48 -v singularity exec campaign007.simg ./ring
+#mpiexec -np 48  -v ./ringlocal
+
