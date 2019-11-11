@@ -1,7 +1,7 @@
 #!/bin/bash
 #$ -cwd
 #$ -j y
-#$ -N cmp03
+#$ -N cmp06
 #$ -pe smp 1
 ##$ -l h_vmem=1G
 #$ -l h_rt=72:0:0
@@ -13,4 +13,4 @@
 # Load the application module
 module load singularity/2.6.1
 
-singularity exec campaign003.simg python3 /opt/chains/campaign003/campaign003driver.py ${SGE_TASK_ID}
+singularity exec campaign006.simg python3 -u /opt/chains/campaigns/campaign006/campaign006driver.py ${SGE_TASK_ID}
