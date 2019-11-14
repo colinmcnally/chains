@@ -19,8 +19,8 @@ class DriverBase():
     def get_next_physical_output(self, t):
        """Return the next physical output time past time t, assumes a list of times, not a frequency, might be a limitation"""
        nt = float('inf')
-       if (self.model.params['physical_otuput_dt'] is not None):
-           nt = self.model.status.last_physical_output + self.model.params['physical_otuput_dt']
+       if (self.model.params['physical_output_dt'] is not None):
+           nt = self.model.status['last_physical_output'] + self.model.params['physical_output_dt']
        if (len(self.physical_outputs) > 0):
            #warning, this will not scale too far, need to implement a list frequency option
            for pt in self.physical_outputs:
@@ -47,9 +47,7 @@ class WallClockLimitedDriver(DriverBase):
         model.init_rebound()
         self.model = model
 
-        self.set_physical_outputs(model.params['physical_outputs'],
-                                  model.params['physical_output_dt'],
-                                  model.status['last_physical_output'])
+        self.set_physical_outputs(model.params['physical_outputs'])
 
         if self.verbose:
             print('Model status after init')
@@ -69,6 +67,7 @@ class WallClockLimitedDriver(DriverBase):
                         nextcheck = min(model.sim.t+check_interval, targettime)
                         nextphysout = self.get_next_physical_output(model.sim.t)
                         if nextcheck > nextphysout:
+                            nextcheck = nextphysout
                             manual_flag = True    
                         else:
                             manual_flag = False   
@@ -79,6 +78,8 @@ class WallClockLimitedDriver(DriverBase):
                                 print('\nManual snapshot flag: {} wall elapsed: {:e}'.format(manual_flag, time.time() -self.wall_start))
                             model.manual_snapshot()
                             lastsnap = time.time()
+                            if manual_flag:
+                                model.status['last_physical_output'] = model.sim.t
 
                     if (time.time() - self.wall_start) > wall_limit:
                         if self.verbose:
