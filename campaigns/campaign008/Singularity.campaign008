@@ -1,0 +1,74 @@
+BootStrap: docker
+From: centos:centos7
+
+
+%environment
+    export PYTHONPATH=/opt/chains:/opt/chains/crbx:/opt/rebound
+    export REB_DIR=/opt/rebound
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/rebound
+    export C_INCLUDE_PATH=$C_INCLUDE_PATH:/opt/rebound/src
+
+%post
+  #add EPEL repos Extra Packages for Enterprise Linux
+  yum -y install epel-release
+  yum -y update && yum -y upgrade
+  yum -y install git \
+   libtool autoconf automake make \
+   rpm-build wget glfw-devel
+  yum -y install gcc cpp gcc-c++ gcc-gfortran
+  yum -y install environment-modules hwdata hwloc-libs infinipath-psm \
+         initscripts iproute iptables libfabric libgfortran libibumad \
+         libibverbs libmnl libnetfilter_conntrack libnfnetlink libnl3 \
+         libpsm2 libquadmath librdmacm libtool-ltdl numactl-libs \
+         opensm-libs pciutils pciutils-libs rdma-core sysvinit-tools tcl ucx
+
+  wget https://www.open-mpi.org/software/ompi/v2.1/downloads/openmpi-2.1.0.tar.gz
+  tar -xvf openmpi-2.1.0.tar.gz
+  rm openmpi-2.1.0.tar.gz
+  cd openmpi-2.1.0
+
+  ./configure --with-sge
+  make -j4
+  make all install
+
+  # Update libraries
+  ldconfig
+
+  # Build an MPI test
+  /usr/local/bin/mpicc examples/ring_c.c -o /usr/bin/mpi_ring
+
+  cd ..
+
+  # python 3.6.3 - use the distro as optimized, and  then use pip3 for other things
+  yum -y install python3 python3-devel python3-pip python3.6-scipy
+
+  pip3 install mpi4py
+  pip3 install pandas
+
+  #build librebound
+  cd /opt
+  git clone https://github.com/hannorein/rebound.git
+  cd rebound
+  # reset the working copy to a fixed knopwn revision.
+  # this is somethign we should be able to do for each project/study
+  # for reproducibility
+  git reset --hard 02b3c8b492ff19017f8af4687a1cc25003e7d63c
+  make
+  ln -s librebound.so librebound.cpython-36m-x86_64-linux-gnu.so  
+  export REB_DIR=/opt/rebound
+  cd /
+
+  #build the chainbuilder
+  cd /opt
+  git clone https://github.com/colinmcnally/chains.git
+  cd chains
+  #git reset --hard 
+  cd crbx
+  make
+  ln -s libreboundx.so libreboundx.cpython-36m-x86_64-linux-gnu.so
+  cd /
+  
+
+%runscript
+
+  exec echo "runscript is empty "

@@ -139,25 +139,26 @@ static struct reb_vec3d rebx_calculate_modify_orbits_forces(struct reb_simulatio
         return a;
     }
 
-    double sigma = 1.0 - exp(-(rp-redge)/deltaredge); 
+    double taper = 1.0;
     if (sim->t > tdep){
         if (sim->t < tdep + deltatdep){
-            sigma *= (1.0 - (sim->t - tdep)/deltatdep);
+            taper *= (1.0 - (sim->t - tdep)/deltatdep);
         } else {
-            sigma = 0.0;
+            taper = 0.0;
         }
     }
+    double sigma = 1.0 - exp(-(rp-redge)/deltaredge); 
 
-    a.x =  sigma*dvx/(2.*tau_a);
-    a.y =  sigma*dvy/(2.*tau_a);
-    a.z =  sigma*dvz/(2.*tau_a);
+    a.x =  taper*sigma*dvx/(2.*tau_a);
+    a.y =  taper*sigma*dvy/(2.*tau_a);
+    a.z =  taper*sigma*dvz/(2.*tau_a);
 
     if (tau_e < INFINITY || tau_inc < INFINITY){
         const double vdotr = dx*dvx + dy*dvy + dz*dvz;
         const double prefac = 2*vdotr/r2/tau_e;
-        a.x += prefac*dx;
-        a.y += prefac*dy;
-        a.z += prefac*dz + 2.*dvz/tau_inc;
+        a.x += taper*prefac*dx;
+        a.y += taper*prefac*dy;
+        a.z += taper*(prefac*dz + 2.*dvz/tau_inc);
     }
     return a;
 }

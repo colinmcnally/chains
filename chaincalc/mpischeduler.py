@@ -8,7 +8,7 @@ import chaincalc
 
 class MpiScheduler:
     """A basic MPI based schedualer that works in wallclock chunks. All processes do this together in a synchronous manner."""
-    def __init__(self, campaign, targettime, wall_start, wall_limit_total, check_interval, wall_limit_chunk = 5*60.0):
+    def __init__(self, campaign, wall_start, wall_limit_total, check_interval, wall_limit_chunk = 5*60.0):
         """__init__ calls everything, this is execute-on-instantiate"""
         self.exitFlag = False
         self.comm = MPI.COMM_WORLD
@@ -18,12 +18,12 @@ class MpiScheduler:
         self.wall_limit_total = wall_limit_total
         self.wall_limit_chunk = wall_limit_chunk
         if self.rank == 0:
-             self.masterprocess(campaign, targettime, check_interval)
+             self.masterprocess(campaign, check_interval)
         else:
-             self.slaveprocess(campaign, targettime, check_interval)
+             self.slaveprocess(campaign, check_interval)
 
 
-    def masterprocess(self, campaign, targettime, check_interval):
+    def masterprocess(self, campaign, check_interval):
         """This is the master process, make a work list and send out assignments, do some work too"""
 
         print('Master Process rank ',self.rank)
@@ -45,7 +45,7 @@ class MpiScheduler:
             # if there is work leftover, take it
             if len(am) > 0: 
                 runi = am.popleft()
-                rundone = self.run_model(campaign, runi, targettime, check_interval)
+                rundone = self.run_model(campaign, runi, check_interval)
                 # could make this return more symmetrical
                 if rundone:
                     finishedruns.append(runi)
@@ -72,7 +72,7 @@ class MpiScheduler:
         print('Exit rank ',self.rank)
 
 
-    def slaveprocess(self, campaign, targettime, check_interval):
+    def slaveprocess(self, campaign, check_interval):
         """Execution of a MPI slave process, waits for commands from master, executes chunks of work from campaign"""
         print('Slave Process rank ',self.rank)
 
@@ -81,7 +81,7 @@ class MpiScheduler:
             #post a blocking recv, to wait for an assignment from rank==0
             cmd = self.comm.recv(source=0, tag=1)
             if cmd[0] == 'run': 
-                rundone = self.run_model(campaign, cmd[1], targettime, check_interval)
+                rundone = self.run_model(campaign, cmd[1], check_interval)
                 if rundone:
                     self.comm.send(['finished',cmd[1]], dest=0, tag=2)
                 else:
@@ -93,10 +93,11 @@ class MpiScheduler:
         print('Exit rank ',self.rank)
 
 
-    def run_model(self, campaign, runi, targettime, check_interval):
+    def run_model(self, campaign, runi, check_interval):
         """Execute a model from the campaign, return True if it has passed targettime"""
 
         tm = campaign.get_model(runi)
+        targettime = campaign.get_targettime(runi)
         print('Rank {} will try to run model at index {} of campaign hash {}'.format(self.rank, runi, tm.hash), flush=True)
         now = time.time()
         driver = chaincalc.WallClockLimitedDriver(now)
@@ -108,13 +109,22 @@ class MpiScheduler:
         tm2.get_status()
         if tm2.status['sim.t'] >= targettime:
             print('Run is evolved past targettime')
+            self.targettime_hook(tm2)
+            return True
+        elif tm2.status['lock']:
             return True
         else:
             return False
 
+    def targettime_hook(self, model):
+        """A method to be called once a model has exceeded targettime"""
+        pass 
+
+
 class MpiSchedulerAsync(MpiScheduler):
     """ This version of the MPI schedualer lets the root process only manage work, and slaves get work whenever they need it."""
-    def masterprocess(self, campaign, targettime, check_interval):
+
+    def masterprocess(self, campaign, check_interval):
         """This is the master process, make a work list and send out assignments, do not work."""
 
         print('Master Process rank ',self.rank, flush=True)
@@ -148,7 +158,7 @@ class MpiSchedulerAsync(MpiScheduler):
 
             status = MPI.Status()
             s = self.comm.probe(source=MPI.ANY_SOURCE, tag=2, status=status)
-            print('Root Probe got ', s, status.source, flush=True)
+            #print('Root Probe got ', s, status.source, flush=True)
             finished = self.comm.recv(source=status.source, tag=2) 
             if finished[0] == 'finished':
                 finishedruns.append(finished[1])
@@ -182,7 +192,7 @@ class MpiSchedulerAsync(MpiScheduler):
         print('Exit rank ',self.rank, flush=True)
 
 
-    def slaveprocess(self, campaign, targettime, check_interval):
+    def slaveprocess(self, campaign, check_interval):
         """Execution of a MPI slave process, waits for commands from master, executes chunks of work from campaign"""
         print('Slave Process rank ',self.rank, flush=True)
 
@@ -191,7 +201,7 @@ class MpiSchedulerAsync(MpiScheduler):
             #post a blocking recv, to wait for an assignment or exit from rank==0
             cmd = self.comm.recv(source=0, tag=1)
             if cmd[0] == 'run': 
-                rundone = self.run_model(campaign, cmd[1], targettime, check_interval)
+                rundone = self.run_model(campaign, cmd[1], check_interval)
                 if rundone:
                     # These are all non-blocking so we can get interrupted by a shutdown if needed
                     request = self.comm.isend(['finished',cmd[1]], dest=0, tag=2)

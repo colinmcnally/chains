@@ -11,6 +11,7 @@ class CampaignBase:
       be useful when analysing sets of results together."""
    # hold the hash-indexed Model objects
    _models = OrderedDict()
+   _targettimes = OrderedDict()
    _keys = []
    # holds dicts mapping parameter values to hases, which can then be use to lookup
    indexes = OrderedDict()
@@ -19,8 +20,9 @@ class CampaignBase:
      """For compositing campaigns together, maybe for joint analysis"""
      print('not implemented yet')
 
-   def add_model(self, model):
+   def add_model(self, model, targettime):
        self._models[model.hash] = model
+       self._targettimes[model.hash] = targettime
        self._keys.append(model.hash)       
 
    def new_index(self):
@@ -32,6 +34,9 @@ class CampaignBase:
 
    def get_model(self, index):
        return self._models[self._keys[index]]
+
+   def get_targettime(self, index):
+       return self._targettimes[self._keys[index]]
 
    def get_size(self):
        """Get the number of models in the campaign."""

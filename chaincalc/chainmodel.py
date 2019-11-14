@@ -51,7 +51,8 @@ class Model:
                       'snap_wall_interval',
                       'incscatter',
                       'aspread',
-                      'physical_outputs']
+                      'physical_outputs',
+                      'physical_output_dt']
         for parstr in paramlist:
             try:
                 parval = params[parstr]
@@ -150,7 +151,7 @@ class Model:
             #Here, it is possible that self.sim.t is > status['sim.t] is the last achive was done automatically,
             # but that will nto cuase a problem in current usage. It might be better to move all checkpointing
             # to the driver integrate loop where we can control everything, as there's no callback in REBOUND.
-            self.sim = rebound.Simulation(self.simarchive_filename) 
+            self.sim = rebound.Simulation(self.simarchive_filename, process_warnings=False) 
             #only do this from the driver side with manual trigger, as we have to hit the walltime limit anyways
             #self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.params['snap_wall_interval'], deletefile=False)
         except FileNotFoundError:
@@ -168,26 +169,14 @@ class Model:
             if os.path.isfile(self.simarchive_filename):
                 os.remove(self.simarchive_filename)
             # status should be running or collided
+            # This is where status is created
             self.status = {'status':'running'}
             self.unlock() # calls overwrite_status, and allows locking by driver
 
             # here we do the initialization for a chain model, maybe make this a method so we can overload only it
             self.sim.add(m=self.params['starmass'], hash='star')
+            self.add_planets()
 
-            #init random number generator to get reproducible random phases
-            rng = random.Random(self.hash)
-            a = self.params['a0']
-            for ip in range(1, self.params['nchain']+1):
-                true_anomaly = rng.uniform(0.0, 2.0*np.pi)
-                inclination = rng.normalvariate(0.0, self.params['incscatter'])
-                if self.verbose:
-                    print('adding {} at a={:e}'.format(ip,a))
-                pt = rebound.Particle(simulation=self.sim, primary=self.sim.particles[0],
-                                      m=self.params['pmass'], a=a, inc=inclination, f=true_anomaly)
-                pt.r = a*np.sqrt(pt.m/3.0)
-                self.sim.add(pt)
-                # the 0.05 is a spread. but maybe this could be a param
-                a *= (self.params['p_res'] / (self.params['p_res'] + self.params['q_res'] + self.params['aspread']))**(-2.0/3.0)
             self.sim.move_to_com()
             self.manual_snapshot()
 
@@ -196,6 +185,23 @@ class Model:
          
         #always reset function pointers
         self.sim.heartbeat = self.heartbeat 
+
+    def add_planets(self):
+        """Add the planets. In this method so it can be overloaded."""
+        #init random number generator to get reproducible random phases
+        rng = random.Random(self.hash)
+        a = self.params['a0']
+        for ip in range(1, self.params['nchain']+1):
+            true_anomaly = rng.uniform(0.0, 2.0*np.pi)
+            inclination = rng.normalvariate(0.0, self.params['incscatter'])
+            if self.verbose:
+                print('adding {} at a={:e}'.format(ip,a))
+            pt = rebound.Particle(simulation=self.sim, primary=self.sim.particles[0],
+                                  m=self.params['pmass'], a=a, inc=inclination, f=true_anomaly)
+            pt.r = a*np.sqrt(pt.m/3.0)
+            self.sim.add(pt)
+            # the 0.05 is a spread. but maybe this could be a param
+            a *= (self.params['p_res'] / (self.params['p_res'] + self.params['q_res'] + self.params['aspread']))**(-2.0/3.0)
 
 
     def add_force(self):
@@ -245,6 +251,7 @@ class Model:
 
     def manual_snapshot(self):
         """Call to save a manual snapshot, for example when driver hits walltime limit"""
+        self.status['last_physical_output'] = self.sim.t
         self.sim.simulationarchive_snapshot(self.simarchive_filename)
         self.overwrite_status()
 
@@ -276,7 +283,8 @@ class TauDampModel(Model):
                       'snap_wall_interval',
                       'incscatter',
                       'aspread',
-                      'physical_outputs']
+                      'physical_outputs',
+                      'physical_output_dt']
         for parstr in paramlist:
             try:
                 parval = params[parstr]
@@ -301,3 +309,54 @@ class TauDampModel(Model):
             pt.params['tau_a'] = self.params['tau_a']
             pt.params['tau_e'] = self.params['tau_e']
             pt.params['tau_inc'] = self.params['tau_inc']
+
+
+class ATauDampModel(TauDampModel):
+    """A model using constanat timescale damping, with an inner edge to the disc """
+
+    def validate_paramlist(self, params):
+        """Checks required params are in the model parameter dict"""
+        paramlist =  [
+                      'tau_a',
+                      'tau_e',
+                      'tau_inc',
+                      'redge',
+                      'deltaredge',
+                      'tdep',
+                      'deltatdep',
+                      'pmass',
+                      'nchain',
+                      'a',
+                      'seq',
+                      'G',
+                      'collision',
+                      'starmass',
+                      'integrator',
+                      'integrator_dt',
+                      'snap_wall_interval',
+                      'incscatter',
+                      'physical_outputs',
+                      'physical_output_dt']
+        for parstr in paramlist:
+            try:
+                parval = params[parstr]
+            except KeyError as keyerr:
+                print('chainmodel ATauDampModel did not find param {}'.format(keyerr.args[0]))
+                raise
+        if len(params['a']) != params['nchain']:
+            raise ValueError("Length of a list {} not equal to nchain {}".format(len(params['a']), params['nchain']))
+
+    def add_planets(self):
+        """Add the planets, using a list of a"""
+        #init random number generator to get reproducible random phases
+        rng = random.Random(self.hash)
+        for ip in range(0, self.params['nchain']):
+            true_anomaly = rng.uniform(0.0, 2.0*np.pi)
+            inclination = rng.normalvariate(0.0, self.params['incscatter'])
+            if self.verbose:
+                print('adding {} at a={:e}'.format(ip+1,self.params['a'][ip]))
+            pt = rebound.Particle(simulation=self.sim, primary=self.sim.particles[0],
+                                  m=self.params['pmass'], a=self.params['a'][ip], inc=inclination, f=true_anomaly)
+            pt.r = self.params['a'][ip]*np.sqrt(pt.m/3.0)
+            self.sim.add(pt)
+

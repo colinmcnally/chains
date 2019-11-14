@@ -18,14 +18,17 @@ class DriverBase():
 
     def get_next_physical_output(self, t):
        """Return the next physical output time past time t, assumes a list of times, not a frequency, might be a limitation"""
+       nt = float('inf')
+       if (self.model.params['physical_otuput_dt'] is not None):
+           nt = self.model.status.last_physical_output + self.model.params['physical_otuput_dt']
        if (len(self.physical_outputs) > 0):
            #warning, this will not scale too far, need to implement a list frequency option
            for pt in self.physical_outputs:
                if pt > t:
-                   return pt
-           return float('inf')
+                   return min(nt, pt)
+           return min(nt,float('inf'))
        else:
-           return 0.0
+           return float('inf')
 
 class WallClockLimitedDriver(DriverBase):
     """An abstracted driver class for wallclock-limited execution."""
@@ -39,10 +42,14 @@ class WallClockLimitedDriver(DriverBase):
     def runModel(self, model, targettime, wall_limit, check_interval):
         """Run the model passed, wall_start should be the job start time, and check execution on physical time check_time"""
 
-        self.set_physical_outputs(model.params['physical_outputs'])
         # set model verbose following driver verbose
         model.verbose = self.verbose
         model.init_rebound()
+        self.model = model
+
+        self.set_physical_outputs(model.params['physical_outputs'],
+                                  model.params['physical_output_dt'],
+                                  model.status['last_physical_output'])
 
         if self.verbose:
             print('Model status after init')
