@@ -28,7 +28,7 @@ class DriverBase():
                    return min(nt, pt)
            return min(nt,float('inf'))
        else:
-           return float('inf')
+           return min(nt,float('inf'))
 
 class WallClockLimitedDriver(DriverBase):
     """An abstracted driver class for wallclock-limited execution."""
