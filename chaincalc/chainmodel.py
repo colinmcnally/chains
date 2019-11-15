@@ -151,7 +151,8 @@ class Model:
             #Here, it is possible that self.sim.t is > status['sim.t] is the last achive was done automatically,
             # but that will nto cuase a problem in current usage. It might be better to move all checkpointing
             # to the driver integrate loop where we can control everything, as there's no callback in REBOUND.
-            self.sim = rebound.Simulation(self.simarchive_filename, process_warnings=False) 
+            # Can't suppress the warning about resetting pointers...
+            self.sim = rebound.Simulation(self.simarchive_filename) 
             #only do this from the driver side with manual trigger, as we have to hit the walltime limit anyways
             #self.sim.automateSimulationArchive(self.simarchive_filename, walltime=self.params['snap_wall_interval'], deletefile=False)
         except FileNotFoundError:

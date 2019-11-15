@@ -120,7 +120,7 @@ class OrbitArray:
                     masterp = p
                else:
                    if p != masterp:
-                       print("ip ",ip,"p",p,"msterp",masterp)
+                       print("ip ",ip,"p",p,"masterp",masterp)
                        return (False, None)
            else:
                print("no tight angles for ",ip)
