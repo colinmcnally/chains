@@ -40,11 +40,12 @@ From: centos:centos7
   cd ..
 
   # python 3.6.3 - use the distro as optimized, and  then use pip3 for other things
-  yum -y install python3 python3-devel python3-pip python3.6-scipy
+  yum -y install python3 python3-devel python3-pip python3.6-scipy python3-tkinter
 
   pip3 install mpi4py
   pip3 install tables
   pip3 install pandas
+  pip3 install matplotlib
 
   #build librebound
   cd /opt
