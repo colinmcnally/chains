@@ -5,6 +5,8 @@ import time
 import chaincalc
 import rebound
 
+print("Testing version - bound from disc")
+
 wall_start = time.time()
 
 # three days minus a bit on apocrita
@@ -23,13 +25,17 @@ class CheckChainSheduler(chaincalc.MpiSchedulerAsync):
     """set the targettime_hook method"""
 
     def targettime_hook(self, model):
-        sa = rebound.SimulationArchive(model.status['simarchive_filename'], process_warnings=False)
-        oa = chaincalc.OrbitArray(sa)
-        tlook = 1e4*keplertime #probably 1e2-1e3 times the output cadence
-        lko = oa.tail_orbitarray(tlook)
-        finding = oa.is_this_a_constant_ratio_chain(oa.compute_tight_angles(lko))
-        model.status['is_this_a_constant_ratio_chain'] = finding
-        model.overwrite_status()
+        #This gets called whenever a model is being run, even if not 
+        # evolved because it was already finished, so avoid doing this twice.
+        findingdkey = 'is_this_a_constant_ratio_chain'
+        if not (findingdkey in model.status):
+            sa = rebound.SimulationArchive(model.status['simarchive_filename'], process_warnings=False)
+            oa = chaincalc.OrbitArray(sa)
+            tlook = 1e4*keplertime #probably 1e2-1e3 times the output cadence
+            lko = oa.tail_orbitarray(tlook)
+            finding = oa.is_this_a_constant_ratio_chain(oa.compute_tight_angles(lko))
+            model.status['is_this_a_constant_ratio_chain'] = finding
+            model.overwrite_status()
 
 
 #init does the running...
