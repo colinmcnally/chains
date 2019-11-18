@@ -108,8 +108,11 @@ class MpiScheduler:
         tm2 = campaign.get_model(runi)
         tm2.get_status()
         if tm2.status['sim.t'] >= targettime:
-            print('Run is evolved past targettime')
+            print('Run is evolved past targettime', flush=True)
             self.targettime_hook(tm2)
+            return True
+        elif tm2.status['status'] == 'stop collision':
+            print('Run stopped on collision', flush=True)
             return True
         elif tm2.status['lock']:
             return True
@@ -179,9 +182,13 @@ class MpiSchedulerAsync(MpiScheduler):
                 self.comm.send(['run', torun], dest=dest, tag=1)
             elif dest not in waiting:
                 # important not to saed wait twice, a waiting dest rank just needs an exit
+                print('Rank {:d} commanded to wait'.format(dest), flush=True)
                 self.comm.send(['wait'], dest=dest, tag=1)
 
-            print('***Master unassigned list is now ',list(am), flush=True)
+            if (len(am) < 10):
+                print('***Master unassigned list is now ',list(am), flush=True)
+            else:
+                print('***Master unassigned list has {:d} entries.'.format(len(am)), flush=True)
             if len(am) == 0 and len(waiting) == self.nranks-1:
                 exitFlag = True
 

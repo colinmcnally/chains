@@ -5,6 +5,7 @@
 #
 import time
 import rebound
+import numpy as np
 
 class DriverBase():
     def __init__(self, verbose=False):
@@ -60,11 +61,14 @@ class WallClockLimitedDriver(DriverBase):
                 model.lock()
                 model.set_wall_start(self.wall_start)
 
+                initialsimt = model.sim.t
+
                 try:
                     lastsnap = self.wall_start
 
                     while (model.sim.t < targettime) and ((time.time() - self.wall_start) <= wall_limit) and model.status['status']=='running':
-                        nextcheck = min(model.sim.t+check_interval, targettime)
+                        # Make sure we go to +eps past targettime
+                        nextcheck = min(model.sim.t+check_interval, np.nextafter(targettime, np.inf))
                         nextphysout = self.get_next_physical_output(model.sim.t)
                         if nextcheck > nextphysout:
                             nextcheck = nextphysout
@@ -90,6 +94,9 @@ class WallClockLimitedDriver(DriverBase):
                     model.mark_collision()
                 else:
                     model.manual_snapshot()
+                if (model.sim.t - initialsimt <= 0 and (model.sim.t < targettime)):
+                    warnings.warn("Model did not appear to advance in time from {:e} to {:e}".format(initialsimt, model.sim.t))
+
                 model.unlock()
                 if self.verbose:
                     print('')

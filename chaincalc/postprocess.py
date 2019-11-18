@@ -8,28 +8,42 @@ import numpy as np
 import pandas as pd
 
 
+def bool_nan_to_threestates(df, names):
+    for name in names:
+        df[name] = df[name].fillna(2)
+        df[name] = pd.to_numeric(df[name])
+    return df
+
+
 def collect_to_lifetable(col, lifetable_filename, group_name):
     print('Campaign has {} models'.format(col.get_size()))
 
     # Don't handle this array right currently. Just cut it out.
-    excludekeys = ['physical_outputs', 'a']
+    excludekeys = ['physical_outputs']
 
     data_rows = {}
     for runi in range(0, col.get_size()):
         tm = col.get_model(runi)
+        targettime = col.get_targettime(runi)
         try:
             with open(tm.status_filename,'r') as json_file:
                 status = json.load(json_file)
                 row = {'hash': tm.hash}
+                row['targettime'] = targettime
                 for key in status:
                     if key=='params':
                         for pkey in status['params']:
                             if pkey in excludekeys:
                                 pass
+                            elif type(status['params'][pkey]) == list:
+                                for i,v in enumerate(status['params'][pkey]):
+                                    row[str(pkey)+str(i)] = v
                             else:
                                 row[pkey] = status['params'][pkey]
                     elif type(status[key]) == list:
+                        #print(key,status[key],type(status[key])==list)
                         for i,v in enumerate(status[key]):
+                            #print(v,type(v))
                             row[str(key)+str(i)] = v
                     else:
                         row[key] = status[key]
@@ -41,12 +55,19 @@ def collect_to_lifetable(col, lifetable_filename, group_name):
 
     lifetimes = pd.DataFrame.from_dict(data_rows, orient='index')
     strs = ['hash','status','collision','integrator','collided']
+    # replace mix bool and NaN columns with 0,1,2 int 
+    #lifetimes['is_this_a_constant_ratio_chain0'] = lifetimes['is_this_a_constant_ratio_chain0'].fillna(2)
+    #lifetimes['is_this_a_constant_ratio_chain0'] = pd.to_numeric(lifetimes['is_this_a_constant_ratio_chain0'])
+    lifetimes = bool_nan_to_threestates(lifetimes, ['is_this_a_constant_ratio_chain0', 'is_this_a_constant_ratio_chain1'])
+    print(lifetimes['is_this_a_constant_ratio_chain0'].head())
+    #lifetimes = lifetimes.rename({'is_this_a_constant_ratio_chain0':'is_this_a_constant_ratio_chain0_orig'})
     for i in lifetimes.dtypes.index:
         if lifetimes[i].dtype == object:
-            lifetimes[i].fillna('')
+            lifetimes[i] = lifetimes[i].fillna('')
     print(lifetimes.head())
 
     lifetimes.to_hdf(lifetable_filename, group_name, mode='a', format='table')
+    return lifetimes
 
 def wrap2pi(x):
     return np.mod(x + np.pi, 2.0*np.pi) - np.pi
