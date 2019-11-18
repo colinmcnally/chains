@@ -32,7 +32,7 @@ class Campaign008(chaincalc.CampaignBase):
              'physical_output_dt':100.0*2*np.pi }
         p['physical_outputs'] = []
 
-        nmodels = 1000
+        nmodels = 10000
         nchains = range(6,7) 
         p_ress = range(5,6)
         p_resind = self.new_index()
