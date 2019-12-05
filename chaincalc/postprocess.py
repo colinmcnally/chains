@@ -69,6 +69,7 @@ def collect_to_lifetable(col, lifetable_filename, group_name):
     lifetimes.to_hdf(lifetable_filename, group_name, mode='a', format='table')
     return lifetimes
 
+
 def wrap2pi(x):
     return np.mod(x + np.pi, 2.0*np.pi) - np.pi
 
@@ -79,9 +80,9 @@ class OrbitArray:
         self.nchain = len(sa[0].particles) -1
 
         orbitdata = np.zeros([self.nchain,len(sa)], dtype=[('t',float), ('a',float), ('P',float), ('l',float),
-                                               ('Omega',float), ('omega',float), ('pomega',float)])
+            ('Omega',float), ('omega',float), ('pomega',float), ('e',float)])
         for i, sim in enumerate(sa):
-            orbits = sim.calculate_orbits() # Jacobi coordinates for heliocentraic do primary=sim.particles[0] )
+            orbits = sim.calculate_orbits() # Jacobi coordinates, for heliocentraic do primary=sim.particles[0]
             for ip in range(0,self.nchain):
                 orbitdata['t'][ip,i] = sim.t
                 orbitdata['a'][ip,i] = sim.particles[ip+1].a
@@ -90,6 +91,7 @@ class OrbitArray:
                 orbitdata['omega'][ip,i] = sim.particles[ip+1].omega
                 orbitdata['Omega'][ip,i] = sim.particles[ip+1].Omega
                 orbitdata['pomega'][ip,i] = orbits[ip].pomega
+                orbitdata['e'][ip,i] = orbits[ip].e
         self.orbitdata = orbitdata
 
 
@@ -130,22 +132,21 @@ class OrbitArray:
     def is_this_a_constant_ratio_chain(self, tightangles):
         """Determine from the output of compute_tight_angles if this is a constant period ratio resonant chain"""
         for ip in range(0,self.nchain-1):
-           if len(tightangles[ip]) > 0:
-               p = tightangles[ip][0]['p_res']
-               rangle = tightangles[ip][0]['rangle']
-               for ia in range(1,len(tightangles[ip])):
-                   if tightangles[ip][ia]['rangle'] < rangle:
-                       p = tightangles[ip][ia]['p_res']
-                       rangle =  tightangles[ip][ia]['rangle']
-               if ip==0:
+            if len(tightangles[ip]) > 0:
+                p = tightangles[ip][0]['p_res']
+                rangle = tightangles[ip][0]['rangle']
+                for ia in range(1,len(tightangles[ip])):
+                    if tightangles[ip][ia]['rangle'] < rangle:
+                        p = tightangles[ip][ia]['p_res']
+                        rangle =  tightangles[ip][ia]['rangle']
+                if ip==0:
                     masterp = p
-               else:
+                else:
                    if p != masterp:
                        print("ip ",ip,"p",p,"masterp",masterp)
                        return (False, None)
-           else:
-               print("no tight angles for ",ip)
-               return (False, None)
-
+            else:
+                print("no tight angles for ",ip)
+                return (False, None)
         return (True, masterp)
 
