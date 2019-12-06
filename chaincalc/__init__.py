@@ -5,6 +5,7 @@ from .campaignbase import CampaignBase
 from .driver import DriverBase
 from .driver import WallClockLimitedDriver
 from .postprocess import collect_to_lifetable
+from .postprocess import wrap2pi
 from .postprocess import OrbitArray
 from .mpischeduler import MpiScheduler
 from .mpischeduler import MpiSchedulerAsync

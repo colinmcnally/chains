@@ -112,8 +112,9 @@ class OrbitArray:
         return [theta1, theta2]
 
 
-    def compute_tight_angles(self, lookorbit, librationcut = 0.90*2.0*np.pi, pmin=1, pmax=8):
-        """Look for librating first order resonant angles, with cut off range librationcut"""
+    def compute_tight_angles(self, lookorbit, librationcut=0.90*2.0*np.pi, pmin=1, pmax=8, pratiocut=0.1):
+        """Look for librating first order resonant angles, with cut off range librationcut and period ratio
+           with relative cut at pratiocut"""
         tightangles = []
         for ip in range(0,self.nchain-1):
             ptight = []
@@ -124,7 +125,9 @@ class OrbitArray:
                     #print(ip,ip+1, p,'range',angle.max()-angle.min(), librationcut )
                     anglerange = angle.max()-angle.min()
                     if anglerange < librationcut:
-                        ptight.append({'p_res':p,'rangle':anglerange})
+                        pratio = (lookorbit['P'][ip+1,:]/lookorbit['P'][ip,:]).mean()
+                        if ((p+1.0)/p)*(1.0+pratiocut) > pratio and ((p+1.0)/p)*(1.0-pratiocut) < pratio:
+                            ptight.append({'p_res':p,'rangle':anglerange, 'Pratio':pratio})
             tightangles.append(ptight)
         return tightangles
 
