@@ -313,7 +313,8 @@ class TauDampModel(Model):
 
 
 class ATauDampModel(TauDampModel):
-    """A model using constanat timescale damping, with an inner edge to the disc """
+    """A model using constanat timescale damping, with an inner edge to the disc. This subclass
+       takes a list of planet initial semimajor axis values."""
 
     def validate_paramlist(self, params):
         """Checks required params are in the model parameter dict"""
