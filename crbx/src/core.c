@@ -93,6 +93,7 @@ void rebx_register_default_params(struct rebx_extras* rebx){
     rebx_register_param(rebx, "res_deltaredge", REBX_TYPE_DOUBLE);
     rebx_register_param(rebx, "res_tdep", REBX_TYPE_DOUBLE);
     rebx_register_param(rebx, "res_deltatdep", REBX_TYPE_DOUBLE);
+    rebx_register_param(rebx, "set_a", REBX_TYPE_DOUBLE);
 }
 
 void rebx_register_param(struct rebx_extras* const rebx, const char* name, enum rebx_param_type type){
@@ -229,6 +230,7 @@ struct rebx_force* rebx_create_force(struct rebx_extras* const rebx, const char*
 }
 
 struct rebx_force* rebx_load_force(struct rebx_extras* const rebx, const char* name){
+    printf("%s\n",name);
     struct rebx_force* force = rebx_create_force(rebx, name);
     if (force == NULL){
         return NULL;
@@ -360,6 +362,10 @@ struct rebx_operator* rebx_load_operator(struct rebx_extras* const rebx, const c
     }
     else if (strcmp(name, "modify_orbits_direct") == 0){
         operator->step_function = rebx_modify_orbits_direct;
+        operator->operator_type = REBX_OPERATOR_UPDATER;
+    }
+    else if (strcmp(name, "modify_orbits_reset_a") == 0){
+        operator->step_function = rebx_modify_orbits_reset_a;
         operator->operator_type = REBX_OPERATOR_UPDATER;
     }
     else if (strcmp(name, "track_min_distance") == 0){
