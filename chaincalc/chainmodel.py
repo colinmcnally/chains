@@ -362,3 +362,51 @@ class ATauDampModel(TauDampModel):
             pt.r = self.params['a'][ip]*np.sqrt(pt.m/3.0)
             self.sim.add(pt)
 
+class SetAModel(ATauDampModel):
+    """Like parent class, but on each step set the inner planet position to a fixed semimajor axis set_a."""
+
+    def validate_paramlist(self, params):
+        """Checks required params are in the model parameter dict"""
+        paramlist =  [
+                      'tau_a',
+                      'tau_e',
+                      'tau_inc',
+                      'redge',
+                      'set_a',
+                      'deltaredge',
+                      'tdep',
+                      'deltatdep',
+                      'pmass',
+                      'nchain',
+                      'a',
+                      'seq',
+                      'G',
+                      'collision',
+                      'starmass',
+                      'integrator',
+                      'integrator_dt',
+                      'snap_wall_interval',
+                      'incscatter',
+                      'physical_outputs',
+                      'physical_output_dt']
+        for parstr in paramlist:
+            try:
+                parval = params[parstr]
+            except KeyError as keyerr:
+                print('chainmodel ATauDampModel did not find param {}'.format(keyerr.args[0]))
+                raise
+        if len(params['a']) != params['nchain']:
+            raise ValueError("Length of a list {} not equal to nchain {}".format(len(params['a']), params['nchain']))
+ 
+    def add_force(self):
+        """In addition to parent, add the effect to reset the first planet semimajor axis"""
+        super().add_force() 
+        #if self.verbose:
+        #    print('adding modify_orbits_reset_a')
+        rsa = self.rebx.load_operator('modify_orbits_reset_a')
+        #add the reset effect to particle 1, which should be the innermost one
+        self.sim.particles[1].params['set_a'] = self.params['set_a']
+        self.sim.particles[1].params['res_tdep'] = self.params['tdep']
+        self.sim.particles[1].params['res_deltatdep'] = self.params['deltatdep']
+        self.rebx.add_operator(rsa)
+        self.rsa = rsa

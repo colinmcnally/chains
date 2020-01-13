@@ -1,6 +1,7 @@
 from .chainmodel import Model
 from .chainmodel import TauDampModel
 from .chainmodel import ATauDampModel
+from .chainmodel import SetAModel
 from .campaignbase import CampaignBase 
 from .driver import DriverBase
 from .driver import WallClockLimitedDriver
