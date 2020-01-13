@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+#
+#$ -pe parallel 192
+#$ -l infiniband=sdv-ii
+#$ -l h_rt=72:00:0
+#$ -cwd
+#$ -j y
+#$ -N cmp10
+
+module purge
+module load singularity/3.5.2
+module load openmpi/2.1.0-gcc
+
+module list
+
+mpirun -np 192 singularity exec -B ~/vc/chains:/opt/chains campaign010.sif python3 -u /opt/chains/campaigns/campaign010/campaign010mpidriver.py
