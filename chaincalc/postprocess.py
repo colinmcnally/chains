@@ -125,11 +125,29 @@ class OrbitArray:
                     #print(ip,ip+1, p,'range',angle.max()-angle.min(), librationcut )
                     anglerange = angle.max()-angle.min()
                     if anglerange < librationcut:
+                        #test the period ratio
                         pratio = (lookorbit['P'][ip+1,:]/lookorbit['P'][ip,:]).mean()
                         if ((p+1.0)/p)*(1.0+pratiocut) > pratio and ((p+1.0)/p)*(1.0-pratiocut) < pratio:
-                            ptight.append({'p_res':p,'rangle':anglerange, 'Pratio':pratio})
+                            if self.test_delta_mean_longitude((lookorbit['pomega'][ip,:], lookorbit['pomega'][ip+1,:])):
+                                ptight.append({'p_res':p,'rangle':anglerange, 'Pratio':pratio})
             tightangles.append(ptight)
         return tightangles
+
+    def test_delta_mean_longitude(self,pomegas):
+        """Take in a pair of time series of pomegas, check if the values are stable"""
+        dpomega = abs((pomegas[1]-pomegas[0])) 
+        rangefull = dpomega.max()
+        tlen = int(len(dpomega)/2)
+        rangefirst = dpomega[:tlen].max()
+        rangelast = dpomega[tlen:].max()
+        # now test the the ranges are small and  stable
+        print(rangefull, rangefirst, rangelast)
+        #if (rangefull < 0.9*2*np.pi) and (rangefirst > 0.6*rangefull) and (rangelast > 0.6*rangefull) :
+        if (rangefirst > 0.6*rangefull) and (rangelast > 0.6*rangefull) :
+            return True
+        else:
+            print('range fail')
+            return False
 
 
     def is_this_a_constant_ratio_chain(self, tightangles):
