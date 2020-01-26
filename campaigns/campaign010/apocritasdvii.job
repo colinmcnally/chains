@@ -7,6 +7,7 @@
 #$ -cwd
 #$ -j y
 #$ -N cmp10
+#$ -hold_jid 964179
 
 module purge
 module load use.dev

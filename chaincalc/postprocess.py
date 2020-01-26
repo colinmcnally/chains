@@ -30,6 +30,8 @@ def collect_to_lifetable(col, lifetable_filename, group_name):
                 status = json.load(json_file)
                 row = {'hash': tm.hash}
                 row['targettime'] = targettime
+                if 'is_this_a_mixed_ratio_chain' in status:
+                    print(tm.hash, status['is_this_a_mixed_ratio_chain'])
                 for key in status:
                     if key=='params':
                         for pkey in status['params']:
@@ -41,10 +43,17 @@ def collect_to_lifetable(col, lifetable_filename, group_name):
                             else:
                                 row[pkey] = status['params'][pkey]
                     elif type(status[key]) == list:
-                        #print(key,status[key],type(status[key])==list)
+                        #this is to handle nested lists. It could be a recursive method call.
                         for i,v in enumerate(status[key]):
-                            #print(v,type(v))
-                            row[str(key)+str(i)] = v
+                            if type(v) == list:
+                                for ii,vv in enumerate(v):
+                                    if type(v) == list:
+                                        for iii,vvv in enumerate(vv):
+                                            row[str(key)+str(i)+'_'+str(ii)+'_'+str(iii)] = vvv
+                                    else:
+                                        row[str(key)+str(i)+'_'+str(ii)] = vv
+                            else:
+                                row[str(key)+str(i)] = v
                     else:
                         row[key] = status[key]
                 data_rows[tm.hash] = row               
@@ -56,11 +65,10 @@ def collect_to_lifetable(col, lifetable_filename, group_name):
     lifetimes = pd.DataFrame.from_dict(data_rows, orient='index')
     strs = ['hash','status','collision','integrator','collided']
     # replace mix bool and NaN columns with 0,1,2 int 
-    #lifetimes['is_this_a_constant_ratio_chain0'] = lifetimes['is_this_a_constant_ratio_chain0'].fillna(2)
-    #lifetimes['is_this_a_constant_ratio_chain0'] = pd.to_numeric(lifetimes['is_this_a_constant_ratio_chain0'])
-    lifetimes = bool_nan_to_threestates(lifetimes, ['is_this_a_constant_ratio_chain0', 'is_this_a_constant_ratio_chain1'])
-    print(lifetimes['is_this_a_constant_ratio_chain0'].head())
-    #lifetimes = lifetimes.rename({'is_this_a_constant_ratio_chain0':'is_this_a_constant_ratio_chain0_orig'})
+    lifetimes = bool_nan_to_threestates(lifetimes, ['is_this_a_constant_ratio_chain0', 
+                                                    'is_this_a_constant_ratio_chain1',
+                                                    'is_this_a_mixed_ratio_chain0',
+                                                    'is_this_a_mixed_ratio_chain1'])
     for i in lifetimes.dtypes.index:
         if lifetimes[i].dtype == object:
             lifetimes[i] = lifetimes[i].fillna('')
@@ -171,3 +179,20 @@ class OrbitArray:
                 return (False, None)
         return (True, masterp)
 
+    def is_this_a_mixed_ratio_chain(self, tightangles):
+        """Determine from the output of compute_tight_angles if this is a mixed period ratio resonant chain"""
+        ps = [-1 for i in range(0,self.nchain-1)]
+        for ip in range(0,self.nchain-1):
+            if len(tightangles[ip]) > 0:
+                p = tightangles[ip][0]['p_res']
+                rangle = tightangles[ip][0]['rangle']
+                # check for angles with a smaller libration range
+                for ia in range(1,len(tightangles[ip])):
+                    if tightangles[ip][ia]['rangle'] < rangle:
+                        p = tightangles[ip][ia]['p_res']
+                        rangle =  tightangles[ip][ia]['rangle']
+                #store this one
+                ps[ip] = (p, rangle)
+            else:
+                return (False, None)
+        return (True, ps)
